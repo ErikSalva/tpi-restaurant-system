@@ -1,0 +1,67 @@
+version: '3.8'
+
+name: restaurant
+
+services:
+  # API Pedidos
+  api-pedidos:
+    build: ./api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongo:27017/restaurant_db
+      - RABBITMQ_URL=amqp://guest:guest@RabbitMQ:5672
+    depends_on:
+      - mongo
+      - RabbitMQ
+    networks:
+      - restaurant-network
+
+  #MongoDB
+  mongo:
+    image: mongo:7.0
+    environment:
+      - MONGO_INITDB_DATABASE=restaurant_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - restaurant-network
+
+  #RabbitMQ
+  RabbitMQ:
+    image: rabbitmq:3-management-alpine
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - "5672:5672"  
+      - "15672:15672"  
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - restaurant-network
+
+  # Servicio Cocina
+  servicio-cocina:
+    build: ./kitchen
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - RABBITMQ_URL=amqp://guest:guest@RabbitMQ:5672
+      - WEBSOCKET_PORT=3001
+    depends_on:
+      - RabbitMQ
+    networks:
+      - restaurant-network
+
+volumes:
+  mongo_data:
+  rabbitmq_data:
+
+networks:
+  restaurant-network:
+    driver: bridge
