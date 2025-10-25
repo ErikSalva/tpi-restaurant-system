@@ -5,7 +5,7 @@ name: restaurant
 services:
   # API Pedidos
   api-pedidos:
-    build: ./api
+    build: ./api-pedidos
     ports:
       - "3000:3000"
     environment:
@@ -46,7 +46,7 @@ services:
 
   # Servicio Cocina
   servicio-cocina:
-    build: ./kitchen
+    build: ./servicio-cocina
     ports:
       - "3001:3001"
     environment:
