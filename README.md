@@ -39,11 +39,12 @@ Más diagramas y decisiones en [`/docs`](./docs).
 Ejemplo de archivo: `.env.example`
 
 ```env
-PORT=8000
-MONGO_URI=mongodb://mongo:27017/restaurante
-RABBITMQ_URL=amqp://rabbitmq:5672
+PORT=3000
+MONGODB_URI=mongodb://mongo:27017/restaurant_db
+RABBITMQ_URL=amqp://guest:guest@RabbitMQ:5672
 JWT_SECRET=supersecreto
 NODE_ENV=development
+WEBSOCKET_PORT=3001
 ```
 
 - Copiar `.env.example` a `.env` y personalizar los valores.
@@ -57,16 +58,16 @@ NODE_ENV=development
 2. **Levantar servicios**
    - Solo dependencias:
      ```powershell
-     docker compose up -d mongo rabbitmq
+     docker compose up -d mongo RabbitMQ
      ```
    - Todos los servicios (API, cocina, etc):
      ```powershell
      docker compose up -d --build
      ```
 3. **Verificar funcionamiento**
-   - API: http://localhost:8000/health
+   - API: http://localhost:3000/health
    - RabbitMQ UI: http://localhost:15672
-   - Logs: `docker compose logs -f cocina`
+   - Logs: `docker compose logs -f servicio-cocina`
 
 ---
 
