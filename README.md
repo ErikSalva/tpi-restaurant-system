@@ -19,17 +19,21 @@ Entidades principales: **Pedido**, **Producto**.
 
 ## Arquitectura (C4)
 
+**Vista de contexto:**
+
+![C4 - Contexto](docs/c4/c4-context.png)
+
+**Vista de contenedor:**
+
 ![C4 - Arquitectura de alto nivel](docs/c4/c4-container.png)
 
 **Vista de componentes:**
 
 ![C4 - Componentes](docs/c4/c4-component.png)
 
-**Vista de contexto:**
 
-![C4 - Contexto](docs/c4/c4-context.png)
 
-**Modelo de datos NoSQL (MongoDB):**
+## Modelo de datos NoSQL (MongoDB)
 
 ![Modelo de datos NoSQL](docs/nosql-schema.png)
 
