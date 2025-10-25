@@ -29,10 +29,6 @@ Entidades principales: **Pedido**, **Producto**.
 
 ![C4 - Contexto](docs/c4/c4-context.png)
 
-**Diagrama de flujo asincrónico:**
-
-![Flujo asincrónico](docs/c4/c4-system.png)
-
 **Modelo de datos NoSQL (MongoDB):**
 
 ![Modelo de datos NoSQL](docs/nosql-schema.png)
