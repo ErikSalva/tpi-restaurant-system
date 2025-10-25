@@ -21,6 +21,22 @@ Entidades principales: **Pedido**, **Producto**.
 
 ![C4 - Arquitectura de alto nivel](docs/c4/c4-container.png)
 
+**Vista de componentes:**
+
+![C4 - Componentes](docs/c4/c4-component.png)
+
+**Vista de contexto:**
+
+![C4 - Contexto](docs/c4/c4-context.png)
+
+**Diagrama de flujo asincrónico:**
+
+![Flujo asincrónico](docs/c4/c4-system.png)
+
+**Modelo de datos NoSQL (MongoDB):**
+
+![Modelo de datos NoSQL](docs/nosql-schema.png)
+
 Más diagramas y decisiones en [`/docs`](./docs).
 
 ---
