@@ -91,7 +91,7 @@ WEBSOCKET_PORT=3001
 
 | Versión         | Tag    | Último commit |
 | --------------- | ------ | ------------- |
-| Entrega inicial | v1.0.0 | 4b852be       |
+| Entrega inicial | v1.0.0 | 45d2a15       |
 
 ---
 
