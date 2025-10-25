@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍳 Tablero de Cocina</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .pedidos-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .pedido-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .pedido-id {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ffd700;
+        }
+        .pedido-items {
+            margin: 10px 0;
+        }
+        .item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .timestamp {
+            font-size: 0.9em;
+            color: #ccc;
+            margin-top: 10px;
+        }
+        .connection-status {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .connected { background-color: #4CAF50; }
+        .disconnected { background-color: #f44336; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍳 Tablero de Cocina</h1>
+            <p>Sistema de Pedidos en Tiempo Real</p>
+        </div>
+        
+        <div class="status">
+            <h3>Estado de Conexión</h3>
+            <p>
+                <span id="connectionStatus" class="connection-status disconnected"></span>
+                <span id="connectionText">Desconectado</span>
+            </p>
+            <p>Pedidos recibidos: <span id="pedidosCount">0</span></p>
+        </div>
+        
+        <div class="pedidos-container" id="pedidosContainer">
+            <div class="pedido-card" style="text-align: center; opacity: 0.7;">
+                <h3>⏳ Esperando pedidos...</h3>
+                <p>Los pedidos confirmados aparecerán aquí automáticamente</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let pedidosCount = 0;
+        
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                console.log('🔌 Conectado al WebSocket');
+                updateConnectionStatus(true);
+            };
+            
+            ws.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                console.log('📨 Mensaje recibido:', message);
+                
+                if (message.type === 'pedido_confirmado') {
+                    addPedido(message.data);
+                } else if (message.type === 'welcome') {
+                    console.log('👋', message.message);
+                }
+            };
+            
+            ws.onclose = function() {
+                console.log('🔌 Conexión WebSocket cerrada');
+                updateConnectionStatus(false);
+                // Reconectar después de 3 segundos
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('❌ Error en WebSocket:', error);
+                updateConnectionStatus(false);
+            };
+        }
+        
+        function updateConnectionStatus(connected) {
+            const status = document.getElementById('connectionStatus');
+            const text = document.getElementById('connectionText');
+            
+            if (connected) {
+                status.className = 'connection-status connected';
+                text.textContent = 'Conectado';
+            } else {
+                status.className = 'connection-status disconnected';
+                text.textContent = 'Desconectado';
+            }
+        }
+        
+        function addPedido(pedido) {
+            pedidosCount++;
+            document.getElementById('pedidosCount').textContent = pedidosCount;
+            
+            // Remover mensaje de espera si existe
+            const container = document.getElementById('pedidosContainer');
+            const waitingMsg = container.querySelector('.pedido-card[style*="opacity: 0.7"]');
+            if (waitingMsg) {
+                waitingMsg.remove();
+            }
+            
+            // Crear tarjeta de pedido
+            const pedidoCard = document.createElement('div');
+            pedidoCard.className = 'pedido-card';
+            pedidoCard.innerHTML = `
+                <div class="pedido-id">Pedido #${pedido.orderId || 'N/A'}</div>
+                <div class="pedido-items">
+                    ${pedido.items ? pedido.items.map(item => `<div class="item">${item}</div>`).join('') : '<div class="item">Sin items</div>'}
+                </div>
+                <div class="timestamp">
+                    Cliente: ${pedido.customerName || 'Anónimo'}<br>
+                    Total: $${pedido.total || '0.00'}<br>
+                    Recibido: ${new Date().toLocaleTimeString()}
+                </div>
+            `;
+            
+            // Agregar al inicio del contenedor
+            container.insertBefore(pedidoCard, container.firstChild);
+            
+            // Limitar a 10 pedidos visibles
+            while (container.children.length > 10) {
+                container.removeChild(container.lastChild);
+            }
+        }
+        
+        // Conectar al cargar la página
+        connectWebSocket();
+    </script>
+</body>
+</html>
