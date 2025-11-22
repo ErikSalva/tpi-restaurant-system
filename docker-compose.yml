@@ -12,6 +12,7 @@ services:
       - NODE_ENV=development
       - MONGODB_URI=mongodb://mongo:27017/restaurant_db
       - RABBITMQ_URL=amqp://guest:guest@RabbitMQ:5672
+      - JWT_SECRET=mi-secret-key-super-segura-cambiar-en-produccion
     depends_on:
       - mongo
       - RabbitMQ
