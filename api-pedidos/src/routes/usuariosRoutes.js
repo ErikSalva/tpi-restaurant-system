@@ -3,7 +3,6 @@ const router = express.Router();
 const usuariosController = require('../controllers/usuariosController');
 const validate = require('../middleware/validateMiddleware');
 const { loginSchema } = require('../validators/authValidator');
-const { createProductoSchema } = require('../validators/productoValidator');
 const { objectIdParam } = require('../validators/paramsValidator');
 
 // Auth

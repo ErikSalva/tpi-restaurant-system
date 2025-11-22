@@ -76,9 +76,6 @@ async function seedUsers() {
   const productos = await Producto.find({ nombre: { $in: productsToCreate.map(x => x.nombre) } });
 
   // --- Seed pedidos (un par) ---
-  const adminUser = await Usuario.findOne({ email: 'admin@restaurante.com' });
-  const normalUser = await Usuario.findOne({ email: 'user@restaurante.com' });
-
   // Helper to find product by name
   const findProd = name => productos.find(p => p.nombre === name);
 
