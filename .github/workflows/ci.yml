@@ -1,0 +1,79 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lint-and-test-api-pedidos:
+    name: Lint y Test - API Pedidos
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: api-pedidos/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: ./api-pedidos
+        run: npm ci
+
+      - name: Ejecutar linter
+        working-directory: ./api-pedidos
+        run: npm run lint
+
+      - name: Ejecutar tests
+        working-directory: ./api-pedidos
+        run: npm test
+
+  lint-and-test-servicio-cocina:
+    name: Lint y Test - Servicio Cocina
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: servicio-cocina/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: ./servicio-cocina
+        run: npm ci
+
+      - name: Ejecutar linter
+        working-directory: ./servicio-cocina
+        run: npm run lint
+
+      - name: Ejecutar tests
+        working-directory: ./servicio-cocina
+        run: npm test
+
+  docker-build:
+    name: Validar Docker Build
+    runs-on: ubuntu-latest
+    needs: [lint-and-test-api-pedidos, lint-and-test-servicio-cocina]
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Build API Pedidos
+        working-directory: ./api-pedidos
+        run: docker build -t api-pedidos:test .
+
+      - name: Build Servicio Cocina
+        working-directory: ./servicio-cocina
+        run: docker build -t servicio-cocina:test .
