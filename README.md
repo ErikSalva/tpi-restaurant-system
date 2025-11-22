@@ -31,8 +31,6 @@ Entidades principales: **Pedido**, **Producto**.
 
 ![C4 - Componentes](docs/c4/c4-component.png)
 
-
-
 ## Modelo de datos NoSQL (MongoDB)
 
 ![Modelo de datos NoSQL](docs/nosql-schema.png)
@@ -76,14 +74,43 @@ WEBSOCKET_PORT=3001
      ```powershell
      docker compose up -d mongo RabbitMQ
      ```
-   - Todos los servicios (API, cocina, etc):
+   - Todos los servicios (API, cocina, front):
      ```powershell
      docker compose up -d --build
      ```
 3. **Verificar funcionamiento**
    - API: http://localhost:3000/health
    - RabbitMQ UI: http://localhost:15672
+   - Front Mesero: http://localhost:8080
+   - Tablero Cocina: http://localhost:3001
    - Logs: `docker compose logs -f servicio-cocina`
+
+---
+
+## Flujo Completo del Sistema
+
+```
+1. Mesero (Front) → Crea pedido → API REST (estado: PENDIENTE)
+2. Mesero → Confirma pedido → API REST verifica stock
+3. API → Actualiza stock y estado (CONFIRMADO)
+4. API → Publica evento a RabbitMQ (pedido.confirmado)
+5. RabbitMQ → Enruta a cola cocina.pedidos
+6. Servicio Cocina → Consume evento
+7. Servicio Cocina → Envía via WebSocket a tableros conectados
+8. Front Mesero + Tablero Cocina → Reciben notificación en tiempo real
+```
+
+---
+
+## Servicios Disponibles
+
+| Servicio          | Puerto | Descripción                                   |
+| ----------------- | ------ | --------------------------------------------- |
+| `api-pedidos`     | 3000   | API REST principal (pedidos, productos, auth) |
+| `servicio-cocina` | 3001   | WebSocket server + consumer RabbitMQ          |
+| `front-mesero`    | 8080   | Frontend web para meseros (nginx)             |
+| `mongo`           | 27017  | Base de datos MongoDB                         |
+| `RabbitMQ`        | 5672   | Broker de mensajería (UI: 15672)              |
 
 ---
 
@@ -99,3 +126,4 @@ WEBSOCKET_PORT=3001
 
 - Especificación OpenAPI: [`openapi.yaml`](./openapi.yaml)
 - Diagramas y ADRs: [`/docs`](./docs)
+- Arquitectura completa: [`ARCHITECTURE.md`](./ARCHITECTURE.md)

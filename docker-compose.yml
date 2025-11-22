@@ -83,6 +83,21 @@ services:
     networks:
       - restaurant-network
 
+  # Front Mesero
+  front-mesero:
+    build: ./front-mesero
+    ports:
+      - "${FRONT_PORT:-8080}:80"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+    depends_on:
+      api-pedidos:
+        condition: service_started
+      servicio-cocina:
+        condition: service_started
+    networks:
+      - restaurant-network
+
 volumes:
   mongo_data:
   rabbitmq_data:

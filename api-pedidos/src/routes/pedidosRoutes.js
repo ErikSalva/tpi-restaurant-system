@@ -29,6 +29,27 @@ router.post(
   pedidosController.confirmarPedido
 );
 
+router.post(
+  '/:id/en-preparacion',
+  validate(objectIdParam, 'params'),
+  authorizeRoles('USER', 'ADMIN'),
+  pedidosController.marcarEnPreparacion
+);
+
+router.post(
+  '/:id/listo',
+  validate(objectIdParam, 'params'),
+  authorizeRoles('USER', 'ADMIN'),
+  pedidosController.marcarListo
+);
+
+router.post(
+  '/:id/entregado',
+  validate(objectIdParam, 'params'),
+  authorizeRoles('USER', 'ADMIN'),
+  pedidosController.marcarEntregado
+);
+
 router.get(
   '/:id',
   validate(objectIdParam, 'params'),

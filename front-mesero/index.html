@@ -45,6 +45,22 @@
             align-items: center;
         }
 
+        .ws-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .ws-status.connected {
+            background-color: #10b981;
+        }
+
+        .ws-status.disconnected {
+            background-color: #ef4444;
+        }
+
         .btn {
             padding: 10px 20px;
             border: none;
@@ -214,6 +230,16 @@
             border: 1px solid #e5e7eb;
             border-radius: 5px;
             margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .pedido-item.actualizado {
+            animation: pulseGreen 1s ease-in-out;
+        }
+
+        @keyframes pulseGreen {
+            0%, 100% { background-color: white; }
+            50% { background-color: #d1fae5; }
         }
 
         .pedido-header {
@@ -309,6 +335,33 @@
         .tab-content.active {
             display: block;
         }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            border-left: 4px solid #10b981;
+            z-index: 1000;
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .notification.hide {
+            animation: slideOutRight 0.3s ease-out forwards;
+        }
+
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(400px); opacity: 0; }
+        }
     </style>
 </head>
 <body>
@@ -316,11 +369,11 @@
         <h2>🔐 Iniciar Sesión</h2>
         <div class="form-group">
             <label>Email:</label>
-            <input type="email" id="loginEmail" value="admin@restaurante.com" placeholder="admin@restaurante.com">
+            <input type="email" id="loginEmail" placeholder="admin@restaurante.com">
         </div>
         <div class="form-group">
             <label>Contraseña:</label>
-            <input type="password" id="loginPassword" value="admin123" placeholder="admin123">
+            <input type="password" id="loginPassword" placeholder="Contraseña">
         </div>
         <button class="btn btn-primary" onclick="login()" style="width: 100%;">Iniciar Sesión</button>
         <div id="loginError" class="alert alert-error hidden" style="margin-top: 15px;"></div>
@@ -328,7 +381,13 @@
 
     <div id="mainSection" class="container hidden">
         <div class="header">
-            <h1>🍽️ Sistema de Pedidos - Mesero</h1>
+            <div>
+                <h1>🍽️ Sistema de Pedidos - Mesero</h1>
+                <small>
+                    <span class="ws-status disconnected" id="wsStatus"></span>
+                    <span id="wsText">Desconectado</span>
+                </small>
+            </div>
             <div class="user-info">
                 <span id="userEmail"></span>
                 <button class="btn btn-secondary" onclick="logout()">Cerrar Sesión</button>
@@ -383,11 +442,129 @@
         let token = localStorage.getItem('token');
         let cart = [];
         let productos = [];
+        let ws = null;
+        let pedidosCache = new Map();
 
         if (token) {
             showMainSection();
         }
 
+        // ===== WebSocket =====
+        function connectWebSocket() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                return;
+            }
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            console.log('🔌 Conectando a WebSocket:', wsUrl);
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                console.log('✅ WebSocket conectado');
+                updateWSStatus(true);
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const message = JSON.parse(event.data);
+                    console.log('📨 Mensaje WebSocket recibido:', message);
+                    
+                    if (message.type === 'pedido.confirmado' || message.type === 'pedido_confirmado') {
+                        handlePedidoConfirmado(message.data);
+                    } else if (message.type === 'pedido.estado_cambiado') {
+                        handleEstadoCambiado(message.data);
+                    } else if (message.type === 'welcome') {
+                        console.log('👋', message.message);
+                    }
+                } catch (error) {
+                    console.error('❌ Error procesando mensaje WebSocket:', error);
+                }
+            };
+            
+            ws.onclose = function() {
+                console.log('🔌 WebSocket desconectado');
+                updateWSStatus(false);
+                // Reconectar después de 3 segundos
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('❌ Error en WebSocket:', error);
+                updateWSStatus(false);
+            };
+        }
+
+        function updateWSStatus(connected) {
+            const status = document.getElementById('wsStatus');
+            const text = document.getElementById('wsText');
+            
+            if (status && text) {
+                if (connected) {
+                    status.className = 'ws-status connected';
+                    text.textContent = 'Conectado';
+                } else {
+                    status.className = 'ws-status disconnected';
+                    text.textContent = 'Desconectado';
+                }
+            }
+        }
+
+        function handlePedidoConfirmado(pedido) {
+            console.log('🎉 Pedido confirmado:', pedido);
+            
+            // Mostrar notificación
+            showNotification(`Pedido #${pedido.pedidoId?.slice(-6)} confirmado exitosamente!`);
+            
+            // Recargar lista de pedidos si estamos en esa pestaña
+            const pedidosTab = document.getElementById('pedidosTab');
+            if (pedidosTab && pedidosTab.classList.contains('active')) {
+                cargarPedidos();
+            }
+        }
+
+        function handleEstadoCambiado(data) {
+            console.log('🔄 Estado cambiado:', data);
+            
+            const estadoTextos = {
+                'EN_PREPARACION': 'En Preparación',
+                'LISTO': 'Listo',
+                'ENTREGADO': 'Entregado'
+            };
+            
+            const estadoTexto = estadoTextos[data.estadoNuevo] || data.estadoNuevo;
+            
+            // Mostrar notificación
+            showNotification(`Pedido #${data.pedidoId?.slice(-6)} ahora está: ${estadoTexto}`);
+            
+            // Actualizar cache de estados
+            pedidosCache.set(data.pedidoId, data.estadoNuevo);
+            
+            // Recargar lista de pedidos si estamos en esa pestaña
+            const pedidosTab = document.getElementById('pedidosTab');
+            if (pedidosTab && pedidosTab.classList.contains('active')) {
+                cargarPedidos();
+            }
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.innerHTML = `
+                <strong>✅ Notificación</strong>
+                <p style="margin-top: 5px;">${message}</p>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.add('hide');
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+
+        // ===== Autenticación =====
         async function login() {
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
@@ -415,6 +592,7 @@
                     showMainSection();
                     cargarProductos();
                     cargarPedidos();
+                    connectWebSocket();
                 } else {
                     errorDiv.textContent = data.error || 'Credenciales inválidas';
                     errorDiv.classList.remove('hidden');
@@ -429,6 +607,10 @@
         function logout() {
             token = null;
             localStorage.removeItem('token');
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
             document.getElementById('loginSection').classList.remove('hidden');
             document.getElementById('mainSection').classList.add('hidden');
             cart = [];
@@ -454,6 +636,7 @@
             document.getElementById(tabName + 'Tab').classList.add('active');
         }
 
+        // ===== Productos =====
         async function cargarProductos() {
             try {
                 const response = await fetch(`${API_URL}/api/productos`, {
@@ -463,7 +646,6 @@
                 if (response.ok) {
                     productos = await response.json();
                     renderProductos();
-                    cargarPedidos();
                 }
             } catch (error) {
                 showAlert('Error cargando productos', 'error');
@@ -554,6 +736,7 @@
             document.getElementById('cartTotal').textContent = `$${total.toFixed(2)}`;
         }
 
+        // ===== Pedidos =====
         async function crearPedido() {
             if (cart.length === 0) {
                 showAlert('El carrito está vacío', 'error');
@@ -603,7 +786,13 @@
                 });
 
                 if (response.ok) {
-                    const pedidos = await response.json();
+                    let pedidos = await response.json();
+                    // Ordenar por updatedAt (más reciente primero)
+                    pedidos = pedidos.sort((a, b) => {
+                        const dateA = new Date(a.updatedAt);
+                        const dateB = new Date(b.updatedAt);
+                        return dateB - dateA;
+                    });
                     renderPedidos(pedidos);
                 }
             } catch (error) {
@@ -619,8 +808,17 @@
                 return;
             }
 
+            console.log('🔍 Renderizando pedidos:', pedidos.map(p => ({ id: p._id.slice(-6), estado: p.estado })));
+
             container.innerHTML = pedidos.map(pedido => {
                 let totalPedido = 0;
+                
+                // Verificar si el pedido fue actualizado
+                const wasUpdated = pedidosCache.has(pedido._id) && 
+                                   pedidosCache.get(pedido._id) !== pedido.estado;
+                
+                // Actualizar cache
+                pedidosCache.set(pedido._id, pedido.estado);
                 
                 const itemsHtml = pedido.items.map(item => {
                     let precioUnitario = item.precioUnitario;
@@ -648,7 +846,7 @@
                 const totalFinal = pedido.total || totalPedido;
 
                 return `
-                    <div class="pedido-item">
+                    <div class="pedido-item ${wasUpdated ? 'actualizado' : ''}">
                         <div class="pedido-header">
                             <span class="pedido-id">Pedido #${pedido._id.slice(-6)}</span>
                             <span class="estado-badge estado-${pedido.estado}">${pedido.estado}</span>
@@ -656,13 +854,23 @@
                         <div style="margin-bottom: 10px;">
                             ${itemsHtml}
                         </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; flex-wrap: wrap; gap: 10px;">
                             <strong>Total: $${totalFinal.toFixed(2)}</strong>
-                            ${pedido.estado === 'PENDIENTE' ? `
-                                <button class="btn btn-success" onclick="confirmarPedido('${pedido._id}')">
-                                    ✅ Confirmar Pedido
-                                </button>
-                            ` : ''}
+                            <div>
+                                ${pedido.estado === 'PENDIENTE' ? `
+                                    <button class="btn btn-success" onclick="confirmarPedido('${pedido._id}')">
+                                        ✅ Confirmar Pedido
+                                    </button>
+                                ` : ''}
+                                ${pedido.estado === 'LISTO' ? `
+                                    <button class="btn btn-success" onclick="entregarPedido('${pedido._id}')">
+                                        Marcar Entregado
+                                    </button>
+                                ` : ''}
+                                ${pedido.estado === 'CONFIRMADO' || pedido.estado === 'EN_PREPARACION' ? `
+                                    <span style="color: #FF9800; font-weight: bold;">⏳ En cocina...</span>
+                                ` : ''}
+                            </div>
                         </div>
                     </div>
                 `;
@@ -700,6 +908,36 @@
             }
         }
 
+        async function entregarPedido(pedidoId) {
+            if (!confirm('¿Marcar este pedido como entregado?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/pedidos/${pedidoId}/entregado`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    throw new Error('Respuesta inválida del servidor');
+                }
+
+                if (response.ok) {
+                    showAlert('Pedido marcado como entregado', 'success');
+                    cargarPedidos();
+                } else {
+                    showAlert(data.error || 'Error marcando pedido como entregado', 'error');
+                }
+            } catch (error) {
+                console.error('Error entregando pedido:', error);
+                showAlert(`Error de conexión: ${error.message}`, 'error');
+            }
+        }
+
         function showAlert(message, type) {
             const container = document.getElementById('alertContainer');
             const alert = document.createElement('div');
@@ -712,11 +950,12 @@
             }, 5000);
         }
 
+        // Inicializar
         if (token) {
             cargarProductos();
             cargarPedidos();
+            connectWebSocket();
         }
     </script>
 </body>
 </html>
-
