@@ -5,13 +5,14 @@ name: restaurant
 services:
   # API Pedidos
   api-pedidos:
-    build: ./api
+    build: ./api-pedidos
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=development
       - MONGODB_URI=mongodb://mongo:27017/restaurant_db
       - RABBITMQ_URL=amqp://guest:guest@RabbitMQ:5672
+      - JWT_SECRET=mi-secret-key-super-segura-cambiar-en-produccion
     depends_on:
       - mongo
       - RabbitMQ
@@ -46,7 +47,7 @@ services:
 
   # Servicio Cocina
   servicio-cocina:
-    build: ./kitchen
+    build: ./servicio-cocina
     ports:
       - "3001:3001"
     environment:
