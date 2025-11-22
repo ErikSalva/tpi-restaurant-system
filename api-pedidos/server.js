@@ -87,8 +87,11 @@ const connectRabbitMQ = async () => {
   }
 };
 
+// Servir archivos estáticos (debe ir antes de las rutas)
+app.use(express.static('public'));
+
 // Rutas básicas
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.json({
     message: '¡Hola! API del Sistema de Restaurante funcionando correctamente',
     status: 'OK',
