@@ -4,9 +4,10 @@ const amqp = require('amqplib');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const { connectRabbit } = require('./src/events/producer');
 require('dotenv').config();
 
-// Swagger UI (opcional)
+// Swagger UI
 let swaggerUi, YAML;
 try {
   swaggerUi = require('swagger-ui-express');
@@ -65,9 +66,9 @@ const connectDB = async () => {
   try {
     const mongoUri = process.env.MONGODB_URI || 'mongodb://mongo:27017/restaurant_db';
     await mongoose.connect(mongoUri);
-    console.log('✅ Conectado a MongoDB');
+    console.log('Conectado a MongoDB');
   } catch (error) {
-    console.error('❌ Error conectando a MongoDB:', error);
+    console.error('Error conectando a MongoDB:', error);
   }
 };
 
@@ -80,7 +81,7 @@ const connectRabbitMQ = async () => {
     console.log('✅ Conectado a RabbitMQ');
     return { connection, channel };
   } catch (error) {
-    console.error('❌ Error conectando a RabbitMQ:', error);
+    console.error('Error conectando a RabbitMQ:', error);
     // No detener el servidor si RabbitMQ no está disponible
     return null;
   }
@@ -89,7 +90,7 @@ const connectRabbitMQ = async () => {
 // Rutas básicas
 app.get('/', (req, res) => {
   res.json({
-    message: '🍽️ ¡Hola! API del Sistema de Restaurante funcionando correctamente',
+    message: '¡Hola! API del Sistema de Restaurante funcionando correctamente',
     status: 'OK',
     timestamp: new Date().toISOString(),
     services: {
@@ -120,6 +121,7 @@ app.use('/auth', authRoutes);
 const startServer = async () => {
   await connectDB();
   await connectRabbitMQ();
+  await connectRabbit();
   
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Servidor corriendo en puerto ${PORT}`);

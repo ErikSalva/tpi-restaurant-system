@@ -23,6 +23,7 @@ services:
   #MongoDB
   mongo:
     image: mongo:7.0
+    command: mongod --replSet rs0
     environment:
       - MONGO_INITDB_DATABASE=restaurant_db
     ports:

@@ -114,8 +114,8 @@ components:
           example: "67123f..."
         estado:
           type: string
-          enum: [CONFIRMADO, EN_PREPARACION, LISTO, ENTREGADO]
-          example: "EN_PREPARACION"
+          enum: [PENDIENTE, CONFIRMADO, EN_PREPARACION, LISTO, ENTREGADO]
+          example: "PENDIENTE"
         items:
           type: array
           items:
@@ -332,7 +332,7 @@ paths:
     
     post:
       summary: "Crear un nuevo pedido"
-      description: "Crea un nuevo pedido, ejecuta la transacción de stock y publica el evento de creación."
+      description: "Crea un nuevo pedido en estado PENDIENTE. Para confirmarlo y ejecutar la transacción, usa POST /pedidos/{id}/confirmar"
       tags: [Pedidos]
       requestBody:
         required: true
@@ -377,6 +377,83 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
                 
+  /pedidos/{id}/confirmar:
+    post:
+      summary: Confirmar un pedido (Transacción)
+      description: |
+        Confirma un pedido en estado PENDIENTE. Ejecuta una transacción que:
+        - Valida que el pedido esté en estado PENDIENTE
+        - Valida stock disponible para cada producto
+        - Descuenta el stock de los productos
+        - Calcula totales (subtotal, total)
+        - Actualiza el estado a CONFIRMADO
+        - Publica un evento a RabbitMQ con routing key "pedido.confirmado"
+        
+        **Transacción atómica**: Si alguna validación falla, se revierte todo.
+      tags: [Pedidos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "67123b..."
+          description: ID del pedido a confirmar
+      responses:
+        '200':
+          description: Pedido confirmado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Pedido confirmado correctamente"
+                  pedido:
+                    $ref: '#/components/schemas/Pedido'
+              example:
+                message: "Pedido confirmado correctamente"
+                pedido:
+                  _id: "67123b..."
+                  usuarioId: "67123f..."
+                  estado: "CONFIRMADO"
+                  items:
+                    - productoId: "67123a..."
+                      cantidad: 1
+                      nombreProducto: "Hamburguesa Doble Cheddar"
+                      precioUnitario: 1500.50
+                      subtotal: 1500.50
+                  subtotal: 1500.50
+                  total: 1500.50
+                  createdAt: "2025-10-25T14:30:00Z"
+                  updatedAt: "2025-10-25T14:35:00Z"
+        '400':
+          description: Error de validación o negocio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                pedidoNoEncontrado:
+                  value:
+                    error: "Pedido no encontrado"
+                estadoInvalido:
+                  value:
+                    error: "El pedido no puede confirmarse porque está en estado CONFIRMADO"
+                stockInsuficiente:
+                  value:
+                    error: "Stock insuficiente para Hamburguesa Doble Cheddar. Disponible: 5, Solicitado: 10"
+                productoNoDisponible:
+                  value:
+                    error: "El producto Hamburguesa Doble Cheddar no está disponible"
+        '404':
+          description: Pedido no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /pedidos/{id}:
     get:
       summary: Obtener un pedido por ID
