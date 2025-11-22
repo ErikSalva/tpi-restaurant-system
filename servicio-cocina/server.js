@@ -1,5 +1,6 @@
 const express = require('express');
 const WebSocket = require('ws');
+const amqp = require('amqplib');
 const cors = require('cors');
 require('dotenv').config();
 
@@ -15,8 +16,6 @@ app.use(express.static('public'));
 const clients = new Set();
 
 // Función para enviar mensajes a todos los clientes conectados
-// Se usará cuando se implemente el consumer de RabbitMQ
-// eslint-disable-next-line no-unused-vars
 const broadcastToClients = (message) => {
   const messageStr = JSON.stringify(message);
   clients.forEach(client => {
@@ -25,6 +24,61 @@ const broadcastToClients = (message) => {
     }
   });
   console.log(`📡 Mensaje enviado a ${clients.size} clientes conectados`);
+};
+
+// Conectar a RabbitMQ y consumir mensajes
+const connectRabbitMQ = async () => {
+  try {
+    const rabbitUrl = process.env.RABBITMQ_URL || 'amqp://guest:guest@RabbitMQ:5672';
+    const connection = await amqp.connect(rabbitUrl);
+    const channel = await connection.createChannel();
+
+    // Declarar exchange (debe coincidir con el producer)
+    await channel.assertExchange('pedidos.exchange', 'topic', { durable: true });
+
+    // Crear cola exclusiva para este servicio
+    const queue = await channel.assertQueue('cocina.pedidos', { durable: true });
+
+    // Bind a los eventos que nos interesan
+    await channel.bindQueue(queue.queue, 'pedidos.exchange', 'pedido.confirmado');
+    await channel.bindQueue(queue.queue, 'pedidos.exchange', 'pedido.*');
+
+    console.log('✅ Conectado a RabbitMQ');
+    console.log(`📥 Esperando mensajes en cola: ${queue.queue}`);
+
+    // Consumir mensajes
+    channel.consume(queue.queue, (msg) => {
+      if (msg) {
+        try {
+          const content = JSON.parse(msg.content.toString());
+          const routingKey = msg.fields.routingKey;
+
+          console.log(`📨 Mensaje recibido [${routingKey}]:`, content);
+
+          // Enviar a todos los clientes WebSocket
+          broadcastToClients({
+            type: routingKey,
+            data: content,
+            timestamp: new Date().toISOString()
+          });
+
+          // Confirmar mensaje procesado
+          channel.ack(msg);
+        } catch (error) {
+          console.error('❌ Error procesando mensaje:', error);
+          // Rechazar mensaje y no re-encolar
+          channel.nack(msg, false, false);
+        }
+      }
+    });
+
+    return { connection, channel };
+  } catch (error) {
+    console.error('❌ Error conectando a RabbitMQ:', error);
+    // Reintentar conexión después de 5 segundos
+    setTimeout(connectRabbitMQ, 5000);
+    return null;
+  }
 };
 
 app.get('/', (req, res) => {
@@ -77,11 +131,14 @@ wss.on('connection', (ws) => {
 });
 
 const startServices = async () => {
+  // Conectar a RabbitMQ
+  await connectRabbitMQ();
+
   console.log('📋 Servicios disponibles:');
   console.log('   GET  / - Información del servicio');
   console.log('   GET  /health - Estado de salud');
   console.log('   WS   / - Conexión WebSocket para tablero');
-  console.log('⚠️  Consumer de RabbitMQ no configurado aún');
+  console.log('✅ Consumer de RabbitMQ activo');
 };
 
 startServices().catch(console.error);

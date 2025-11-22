@@ -22,15 +22,17 @@ function validate(schema, target = 'body') {
     } catch (err) {
       if (err instanceof ZodError) {
         // Build detailed messages with path context
-        const details = err.errors.map(e => {
+        const details = (err.errors || []).map(e => {
           const path = Array.isArray(e.path) && e.path.length ? e.path.join('.') : target;
           const msg = e.message || 'Invalid';
           return `${path}: ${msg}`;
         });
-        const message = details.join('; ');
+        const message = details.length > 0 ? details.join('; ') : 'Validation error';
         return res.status(400).json({ message });
       }
-      next(err);
+      // For non-Zod errors, pass to error handler
+      console.error('Validation middleware error:', err);
+      return res.status(500).json({ message: 'Internal validation error' });
     }
   };
 }

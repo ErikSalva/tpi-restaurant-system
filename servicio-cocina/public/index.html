@@ -164,18 +164,27 @@
                 waitingMsg.remove();
             }
             
+            // Formatear items
+            const itemsHtml = pedido.items && Array.isArray(pedido.items) 
+                ? pedido.items.map(item => `
+                    <div class="item">
+                        ${item.cantidad}x ${item.nombreProducto} - $${item.precioUnitario.toFixed(2)}
+                    </div>
+                  `).join('')
+                : '<div class="item">Sin items</div>';
+            
             // Crear tarjeta de pedido
             const pedidoCard = document.createElement('div');
             pedidoCard.className = 'pedido-card';
             pedidoCard.innerHTML = `
-                <div class="pedido-id">Pedido #${pedido.orderId || 'N/A'}</div>
+                <div class="pedido-id">Pedido #${pedido.pedidoId ? pedido.pedidoId.slice(-8) : 'N/A'}</div>
                 <div class="pedido-items">
-                    ${pedido.items ? pedido.items.map(item => `<div class="item">${item}</div>`).join('') : '<div class="item">Sin items</div>'}
+                    ${itemsHtml}
                 </div>
                 <div class="timestamp">
-                    Cliente: ${pedido.customerName || 'Anónimo'}<br>
-                    Total: $${pedido.total || '0.00'}<br>
-                    Recibido: ${new Date().toLocaleTimeString()}
+                    Usuario: ${pedido.usuarioId ? pedido.usuarioId.slice(-8) : 'Anónimo'}<br>
+                    Total: $${pedido.total ? pedido.total.toFixed(2) : '0.00'}<br>
+                    Recibido: ${new Date(pedido.timestamp).toLocaleTimeString()}
                 </div>
             `;
             
