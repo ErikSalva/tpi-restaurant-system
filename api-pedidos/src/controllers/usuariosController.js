@@ -9,6 +9,16 @@ exports.crearUsuario = async (req, res) => {
   }
 };
 
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const result = await usuariosService.autenticarUsuario(email, password);
+    res.json(result);
+  } catch (error) {
+    res.status(401).json({ error: error.message });
+  }
+};
+
 exports.obtenerUsuarios = async (req, res) => {
   try {
     const usuarios = await usuariosService.obtenerUsuarios();
@@ -47,4 +57,3 @@ exports.eliminarUsuario = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
-
