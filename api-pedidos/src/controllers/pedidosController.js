@@ -37,7 +37,7 @@ exports.obtenerPedido = async (req, res) => {
   try {
     const pedido = await pedidosService.obtenerPedido(req.params.id);
     
-    if (!pedido) return res.status(404).json({ error: "Pedido no encontrado" });
+    if (!pedido) return res.status(404).json({ error: 'Pedido no encontrado' });
 
     const esAdmin = req.user.roles.includes('ADMIN');
     const esSuPedido = pedido.usuarioId.toString() === req.user._id.toString();
@@ -84,7 +84,7 @@ exports.confirmarPedido = async (req, res) => {
     const pedido = await pedidosService.confirmarPedido(req.params.id);
 
     res.json({
-      message: "Pedido confirmado correctamente",
+      message: 'Pedido confirmado correctamente',
       pedido
     });
   } catch (error) {

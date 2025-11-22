@@ -45,10 +45,10 @@ async function confirmarPedido(idPedido) {
       ? await Pedido.findById(idPedido).session(session)
       : await Pedido.findById(idPedido);
     if (!pedido) {
-      throw new Error("Pedido no encontrado");
+      throw new Error('Pedido no encontrado');
     }
 
-    if (pedido.estado !== "PENDIENTE") {
+    if (pedido.estado !== 'PENDIENTE') {
       throw new Error(`El pedido no puede confirmarse porque está en estado ${pedido.estado}`);
     }
 
@@ -89,7 +89,7 @@ async function confirmarPedido(idPedido) {
     pedido.items = itemsActualizados;
     pedido.subtotal = total;
     pedido.total = total;
-    pedido.estado = "CONFIRMADO";
+    pedido.estado = 'CONFIRMADO';
     await (useTransaction ? pedido.save({ session }) : pedido.save());
 
     if (useTransaction && session) {

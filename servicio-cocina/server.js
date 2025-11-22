@@ -14,6 +14,9 @@ app.use(express.static('public'));
 // Almacenar conexiones WebSocket
 const clients = new Set();
 
+// Función para enviar mensajes a todos los clientes conectados
+// Se usará cuando se implemente el consumer de RabbitMQ
+// eslint-disable-next-line no-unused-vars
 const broadcastToClients = (message) => {
   const messageStr = JSON.stringify(message);
   clients.forEach(client => {
@@ -74,12 +77,11 @@ wss.on('connection', (ws) => {
 });
 
 const startServices = async () => {
-  await connectRabbitMQ();
-  
   console.log('📋 Servicios disponibles:');
   console.log('   GET  / - Información del servicio');
   console.log('   GET  /health - Estado de salud');
   console.log('   WS   / - Conexión WebSocket para tablero');
+  console.log('⚠️  Consumer de RabbitMQ no configurado aún');
 };
 
 startServices().catch(console.error);
