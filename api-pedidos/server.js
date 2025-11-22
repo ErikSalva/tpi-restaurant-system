@@ -4,6 +4,16 @@ const amqp = require('amqplib');
 const cors = require('cors');
 require('dotenv').config();
 
+// Importar modelos
+const Producto = require('./src/models/Producto');
+const Pedido = require('./src/models/Pedido');
+const Usuario = require('./src/models/Usuario');
+
+// Importar rutas
+const pedidosRoutes = require('./src/routes/pedidosRoutes');
+const usuariosRoutes = require('./src/routes/usuariosRoutes');
+const authRoutes = require('./src/routes/authRoutes');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -56,6 +66,11 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// Rutas de la API
+app.use('/api/pedidos', pedidosRoutes);
+app.use('/api/usuarios', usuariosRoutes);
+app.use('/auth', authRoutes);
 
 // Iniciar servidor
 const startServer = async () => {
