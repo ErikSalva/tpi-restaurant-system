@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Pedidos - Mesero</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 24px;
+        }
+
+        .user-info {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .login-section {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            max-width: 400px;
+            margin: 100px auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .login-section h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 20px;
+        }
+
+        .product-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .product-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .product-info h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .product-info p {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .product-price {
+            font-size: 18px;
+            font-weight: 600;
+            color: #10b981;
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quantity-control input {
+            width: 60px;
+            padding: 5px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .cart {
+            position: sticky;
+            top: 20px;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .cart-total {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #333;
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .pedidos-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .pedido-item {
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .pedido-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .pedido-id {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .estado-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .estado-PENDIENTE {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .estado-CONFIRMADO {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .estado-EN_PREPARACION {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .estado-LISTO {
+            background: #fce7f3;
+            color: #9f1239;
+        }
+
+        .estado-ENTREGADO {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: #f3f4f6;
+            border: none;
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="loginSection" class="login-section">
+        <h2>🔐 Iniciar Sesión</h2>
+        <div class="form-group">
+            <label>Email:</label>
+            <input type="email" id="loginEmail" value="admin@restaurante.com" placeholder="admin@restaurante.com">
+        </div>
+        <div class="form-group">
+            <label>Contraseña:</label>
+            <input type="password" id="loginPassword" value="admin123" placeholder="admin123">
+        </div>
+        <button class="btn btn-primary" onclick="login()" style="width: 100%;">Iniciar Sesión</button>
+        <div id="loginError" class="alert alert-error hidden" style="margin-top: 15px;"></div>
+    </div>
+
+    <div id="mainSection" class="container hidden">
+        <div class="header">
+            <h1>🍽️ Sistema de Pedidos - Mesero</h1>
+            <div class="user-info">
+                <span id="userEmail"></span>
+                <button class="btn btn-secondary" onclick="logout()">Cerrar Sesión</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('crear', this)">Crear Pedido</button>
+            <button class="tab" onclick="showTab('pedidos', this)">Ver Pedidos</button>
+        </div>
+
+        <div id="crearTab" class="tab-content active">
+            <div class="main-content">
+                <div class="card">
+                    <h2>📋 Productos Disponibles</h2>
+                    <div id="productosList" class="product-list">
+                        <p>Cargando productos...</p>
+                    </div>
+                </div>
+
+                <div class="card cart">
+                    <h2>🛒 Carrito</h2>
+                    <div id="cartItems"></div>
+                    <div class="cart-total">
+                        <span>Total:</span>
+                        <span id="cartTotal">$0.00</span>
+                    </div>
+                    <button class="btn btn-success" onclick="crearPedido()" style="width: 100%; margin-top: 15px;">
+                        Crear Pedido
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="pedidosTab" class="tab-content">
+            <div class="card">
+                <h2>📦 Mis Pedidos</h2>
+                <button class="btn btn-primary" onclick="cargarPedidos()" style="margin-bottom: 15px;">
+                    🔄 Actualizar
+                </button>
+                <div id="pedidosList" class="pedidos-list">
+                    <p>Cargando pedidos...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        let token = localStorage.getItem('token');
+        let cart = [];
+        let productos = [];
+
+        if (token) {
+            showMainSection();
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+
+            try {
+                const response = await fetch(`${API_URL}/auth/token`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    throw new Error('Respuesta inválida del servidor');
+                }
+
+                if (response.ok) {
+                    token = data.token;
+                    localStorage.setItem('token', token);
+                    localStorage.setItem('userEmail', email);
+                    errorDiv.classList.add('hidden');
+                    showMainSection();
+                    cargarProductos();
+                    cargarPedidos();
+                } else {
+                    errorDiv.textContent = data.error || 'Credenciales inválidas';
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error en login:', error);
+                errorDiv.textContent = `Error de conexión: ${error.message}`;
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            token = null;
+            localStorage.removeItem('token');
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('mainSection').classList.add('hidden');
+            cart = [];
+        }
+
+        function showMainSection() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('mainSection').classList.remove('hidden');
+            const userEmail = localStorage.getItem('userEmail') || 'Usuario';
+            document.getElementById('userEmail').textContent = userEmail;
+        }
+
+        function showTab(tabName, element) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            if (element) {
+                element.classList.add('active');
+            } else {
+                const tabButton = document.querySelector(`.tab[onclick*="${tabName}"]`);
+                if (tabButton) tabButton.classList.add('active');
+            }
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        async function cargarProductos() {
+            try {
+                const response = await fetch(`${API_URL}/api/productos`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    productos = await response.json();
+                    renderProductos();
+                    cargarPedidos();
+                }
+            } catch (error) {
+                showAlert('Error cargando productos', 'error');
+            }
+        }
+
+        function renderProductos() {
+            const container = document.getElementById('productosList');
+            container.innerHTML = productos
+                .filter(p => p.disponible && p.stock > 0)
+                .map(producto => `
+                    <div class="product-item">
+                        <div class="product-info">
+                            <h3>${producto.nombre}</h3>
+                            <p>${producto.descripcion || ''}</p>
+                            <p>Stock: ${producto.stock}</p>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <span class="product-price">$${producto.precio.toFixed(2)}</span>
+                            <div class="quantity-control">
+                                <button class="btn btn-secondary" onclick="decrementCart('${producto._id}')">-</button>
+                                <input type="number" id="qty-${producto._id}" value="${getCartQuantity(producto._id)}" min="0" max="${producto.stock}" readonly>
+                                <button class="btn btn-primary" onclick="incrementCart('${producto._id}')">+</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+        }
+
+        function getCartQuantity(productId) {
+            const item = cart.find(i => i.productoId === productId);
+            return item ? item.cantidad : 0;
+        }
+
+        function incrementCart(productId) {
+            const producto = productos.find(p => p._id === productId);
+            if (!producto) return;
+
+            const item = cart.find(i => i.productoId === productId);
+            if (item) {
+                if (item.cantidad < producto.stock) {
+                    item.cantidad++;
+                }
+            } else {
+                cart.push({ productoId: productId, cantidad: 1 });
+            }
+            updateCart();
+            renderProductos();
+        }
+
+        function decrementCart(productId) {
+            const item = cart.find(i => i.productoId === productId);
+            if (item) {
+                item.cantidad--;
+                if (item.cantidad <= 0) {
+                    cart = cart.filter(i => i.productoId !== productId);
+                }
+            }
+            updateCart();
+            renderProductos();
+        }
+
+        function updateCart() {
+            const container = document.getElementById('cartItems');
+            const total = cart.reduce((sum, item) => {
+                const producto = productos.find(p => p._id === item.productoId);
+                return sum + (producto ? producto.precio * item.cantidad : 0);
+            }, 0);
+
+            if (cart.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6b7280;">Carrito vacío</p>';
+            } else {
+                container.innerHTML = cart.map(item => {
+                    const producto = productos.find(p => p._id === item.productoId);
+                    if (!producto) return '';
+                    return `
+                        <div class="cart-item">
+                            <div>
+                                <strong>${producto.nombre}</strong>
+                                <p>${item.cantidad} x $${producto.precio.toFixed(2)}</p>
+                            </div>
+                            <span>$${(producto.precio * item.cantidad).toFixed(2)}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            document.getElementById('cartTotal').textContent = `$${total.toFixed(2)}`;
+        }
+
+        async function crearPedido() {
+            if (cart.length === 0) {
+                showAlert('El carrito está vacío', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/pedidos`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ items: cart })
+                });
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    throw new Error('Respuesta inválida del servidor');
+                }
+
+                if (response.ok) {
+                    showAlert('Pedido creado exitosamente', 'success');
+                    cart = [];
+                    updateCart();
+                    renderProductos();
+                    cargarPedidos();
+                    const pedidosTab = document.querySelector('.tab:nth-child(2)');
+                    if (pedidosTab) {
+                        showTab('pedidos', pedidosTab);
+                    }
+                } else {
+                    showAlert(data.error || 'Error creando pedido', 'error');
+                }
+            } catch (error) {
+                console.error('Error creando pedido:', error);
+                showAlert(`Error de conexión: ${error.message}`, 'error');
+            }
+        }
+
+        async function cargarPedidos() {
+            try {
+                const response = await fetch(`${API_URL}/api/pedidos`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const pedidos = await response.json();
+                    renderPedidos(pedidos);
+                }
+            } catch (error) {
+                showAlert('Error cargando pedidos', 'error');
+            }
+        }
+
+        function renderPedidos(pedidos) {
+            const container = document.getElementById('pedidosList');
+            
+            if (pedidos.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6b7280;">No hay pedidos</p>';
+                return;
+            }
+
+            container.innerHTML = pedidos.map(pedido => {
+                let totalPedido = 0;
+                
+                const itemsHtml = pedido.items.map(item => {
+                    let precioUnitario = item.precioUnitario;
+                    let nombreProducto = item.nombreProducto;
+                    
+                    if (!precioUnitario && item.productoId) {
+                        const producto = productos.find(p => p._id === item.productoId._id || p._id === item.productoId);
+                        if (producto) {
+                            precioUnitario = producto.precio;
+                            nombreProducto = producto.nombre;
+                        }
+                    }
+                    
+                    const subtotal = (precioUnitario || 0) * (item.cantidad || 0);
+                    totalPedido += subtotal;
+                    
+                    return `
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+                            <span>${nombreProducto || 'Producto'} x${item.cantidad || 0}</span>
+                            <span>$${subtotal.toFixed(2)}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                const totalFinal = pedido.total || totalPedido;
+
+                return `
+                    <div class="pedido-item">
+                        <div class="pedido-header">
+                            <span class="pedido-id">Pedido #${pedido._id.slice(-6)}</span>
+                            <span class="estado-badge estado-${pedido.estado}">${pedido.estado}</span>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            ${itemsHtml}
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                            <strong>Total: $${totalFinal.toFixed(2)}</strong>
+                            ${pedido.estado === 'PENDIENTE' ? `
+                                <button class="btn btn-success" onclick="confirmarPedido('${pedido._id}')">
+                                    ✅ Confirmar Pedido
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function confirmarPedido(pedidoId) {
+            if (!confirm('¿Confirmar este pedido? Esto descontará el stock.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/pedidos/${pedidoId}/confirmar`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    throw new Error('Respuesta inválida del servidor');
+                }
+
+                if (response.ok) {
+                    showAlert('Pedido confirmado exitosamente', 'success');
+                    cargarPedidos();
+                    cargarProductos();
+                } else {
+                    showAlert(data.error || 'Error confirmando pedido', 'error');
+                }
+            } catch (error) {
+                console.error('Error confirmando pedido:', error);
+                showAlert(`Error de conexión: ${error.message}`, 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        if (token) {
+            cargarProductos();
+            cargarPedidos();
+        }
+    </script>
+</body>
+</html>
+
