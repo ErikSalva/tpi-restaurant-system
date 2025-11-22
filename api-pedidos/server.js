@@ -15,10 +15,6 @@ try {
   console.warn('⚠️  Swagger UI no disponible:', error.message);
 }
 
-// Importar modelos
-const Producto = require('./src/models/Producto');
-const Pedido = require('./src/models/Pedido');
-const Usuario = require('./src/models/Usuario');
 
 // Importar rutas
 const pedidosRoutes = require('./src/routes/pedidosRoutes');
@@ -129,9 +125,9 @@ const startServer = async () => {
     console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
     console.log(`📊 Health check: http://localhost:${PORT}/health`);
     console.log(`📚 Swagger UI: http://localhost:${PORT}/api-docs`);
-    console.log(`📋 API endpoints:`);
-    console.log(`   GET  / - Información de la API`);
-    console.log(`   GET  /health - Estado de salud`);
+    console.log('📋 API endpoints:');
+    console.log('   GET  / - Información de la API');
+    console.log('   GET  /health - Estado de salud');
   });
 };
 
