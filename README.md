@@ -82,8 +82,9 @@ WEBSOCKET_PORT=3001
    - API: http://localhost:3000/health
    - RabbitMQ UI: http://localhost:15672
    - Front Mesero: http://localhost:8080
-   - Tablero Cocina: http://localhost:3001
-   - Logs: `docker compose logs -f servicio-cocina`
+   - Tablero Cocina (Frontend): http://localhost:3003
+   - Servicio Cocina (Backend): http://localhost:3001/health
+   - Logs: `docker compose logs -f servicio-cocina tablero-cocina`
 
 ---
 
@@ -95,22 +96,23 @@ WEBSOCKET_PORT=3001
 3. API → Actualiza stock y estado (CONFIRMADO)
 4. API → Publica evento a RabbitMQ (pedido.confirmado)
 5. RabbitMQ → Enruta a cola cocina.pedidos
-6. Servicio Cocina → Consume evento
-7. Servicio Cocina → Envía via WebSocket a tableros conectados
-8. Front Mesero + Tablero Cocina → Reciben notificación en tiempo real
+6. Servicio Cocina → Consume evento y broadcastea via WebSocket
+7. Front Mesero + Tablero Cocina → Reciben notificación en tiempo real
+8. Cocina → Cambia estado → API REST → RabbitMQ → Notificación
 ```
 
 ---
 
 ## Servicios Disponibles
 
-| Servicio          | Puerto | Descripción                                   |
-| ----------------- | ------ | --------------------------------------------- |
-| `api-pedidos`     | 3000   | API REST principal (pedidos, productos, auth) |
-| `servicio-cocina` | 3001   | WebSocket server + consumer RabbitMQ          |
-| `front-mesero`    | 8080   | Frontend web para meseros (nginx)             |
-| `mongo`           | 27017  | Base de datos MongoDB                         |
-| `RabbitMQ`        | 5672   | Broker de mensajería (UI: 15672)              |
+| Servicio          | Puerto | Descripción                                        |
+| ----------------- | ------ | -------------------------------------------------- |
+| `api-pedidos`     | 3000   | API REST principal (pedidos, productos, auth)      |
+| `servicio-cocina` | 3001   | Backend SOLO: WebSocket server + RabbitMQ consumer |
+| `tablero-cocina`  | 3003   | Frontend SOLO: Tablero de cocina (HTML/nginx)      |
+| `front-mesero`    | 8080   | Frontend web para meseros (nginx)                  |
+| `mongo`           | 27017  | Base de datos MongoDB                              |
+| `RabbitMQ`        | 5672   | Broker de mensajería (UI: 15672)                   |
 
 ---
 
