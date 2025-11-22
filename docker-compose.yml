@@ -18,7 +18,7 @@ services:
       mongo:
         condition: service_healthy
       RabbitMQ:
-        condition: service_started
+        condition: service_healthy
     networks:
       - restaurant-network
 
@@ -57,6 +57,11 @@ services:
       - "15672:15672"  
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - restaurant-network
 
@@ -69,8 +74,12 @@ services:
       - NODE_ENV=${NODE_ENV:-development}
       - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@RabbitMQ:5672}
       - WEBSOCKET_PORT=${WEBSOCKET_PORT:-3001}
+      - API_PEDIDOS_URL=http://api-pedidos:${PORT:-3000}
     depends_on:
-      - RabbitMQ
+      RabbitMQ:
+        condition: service_healthy
+      api-pedidos:
+        condition: service_started
     networks:
       - restaurant-network
 
