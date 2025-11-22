@@ -8,17 +8,17 @@ async function crearPedido(data) {
   return await Pedido.create({
     usuarioId: data.usuarioId,
     items: data.items,
-    estado: "PENDIENTE"
+    estado: 'PENDIENTE'
   });
 }
 
 async function obtenerPedidos(usuarioId = null) {
   const query = usuarioId ? { usuarioId } : {};
-  return await Pedido.find(query).populate("items.productoId");
+  return await Pedido.find(query).populate('items.productoId');
 }
 
 async function obtenerPedido(id) {
-  return await Pedido.findById(id).populate("items.productoId");
+  return await Pedido.findById(id).populate('items.productoId');
 }
 
 async function actualizarPedido(id, data) {

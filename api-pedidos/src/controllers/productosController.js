@@ -21,7 +21,7 @@ exports.obtenerProductos = async (req, res) => {
 exports.obtenerProducto = async (req, res) => {
   try {
     const producto = await productosService.obtenerProducto(req.params.id);
-    if (!producto) return res.status(404).json({ error: "Producto no encontrado" });
+    if (!producto) return res.status(404).json({ error: 'Producto no encontrado' });
     res.json(producto);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -31,7 +31,7 @@ exports.obtenerProducto = async (req, res) => {
 exports.actualizarProducto = async (req, res) => {
   try {
     const producto = await productosService.actualizarProducto(req.params.id, req.body);
-    if (!producto) return res.status(404).json({ error: "Producto no encontrado" });
+    if (!producto) return res.status(404).json({ error: 'Producto no encontrado' });
     res.json(producto);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -41,8 +41,8 @@ exports.actualizarProducto = async (req, res) => {
 exports.eliminarProducto = async (req, res) => {
   try {
     const producto = await productosService.eliminarProducto(req.params.id);
-    if (!producto) return res.status(404).json({ error: "Producto no encontrado" });
-    res.json({ message: "Producto eliminado" });
+    if (!producto) return res.status(404).json({ error: 'Producto no encontrado' });
+    res.json({ message: 'Producto eliminado' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
