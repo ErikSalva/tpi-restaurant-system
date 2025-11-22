@@ -91,3 +91,48 @@ exports.confirmarPedido = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
+
+/**
+ * Cambiar estado del pedido a EN_PREPARACION
+ */
+exports.marcarEnPreparacion = async (req, res) => {
+  try {
+    const pedido = await pedidosService.cambiarEstado(req.params.id, 'EN_PREPARACION');
+    res.json({
+      message: 'Pedido marcado como en preparación',
+      pedido
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+/**
+ * Cambiar estado del pedido a LISTO
+ */
+exports.marcarListo = async (req, res) => {
+  try {
+    const pedido = await pedidosService.cambiarEstado(req.params.id, 'LISTO');
+    res.json({
+      message: 'Pedido marcado como listo',
+      pedido
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+/**
+ * Cambiar estado del pedido a ENTREGADO
+ */
+exports.marcarEntregado = async (req, res) => {
+  try {
+    const pedido = await pedidosService.cambiarEstado(req.params.id, 'ENTREGADO');
+    res.json({
+      message: 'Pedido marcado como entregado',
+      pedido
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};

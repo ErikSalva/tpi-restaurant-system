@@ -31,7 +31,30 @@ async function publishPedidoConfirmado(pedido) {
   console.log('Evento pedido.confirmado enviado:', pedido.pedidoId);
 }
 
+async function publishEstadoCambiado(pedidoId, estadoAnterior, estadoNuevo) {
+  if (!channel) return console.error('Channel RabbitMQ no inicializado');
+
+  const routingKey = 'pedido.estado_cambiado';
+  
+  const mensaje = {
+    pedidoId,
+    estadoAnterior,
+    estadoNuevo,
+    timestamp: new Date().toISOString()
+  };
+
+  channel.publish(
+    'pedidos.exchange',
+    routingKey,
+    Buffer.from(JSON.stringify(mensaje)),
+    { persistent: true }
+  );
+
+  console.log(`Evento pedido.estado_cambiado enviado: ${pedidoId} (${estadoAnterior} → ${estadoNuevo})`);
+}
+
 module.exports = {
   connectRabbit,
-  publishPedidoConfirmado
+  publishPedidoConfirmado,
+  publishEstadoCambiado
 };

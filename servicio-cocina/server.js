@@ -41,6 +41,7 @@ const connectRabbitMQ = async () => {
 
     // Bind a los eventos que nos interesan
     await channel.bindQueue(queue.queue, 'pedidos.exchange', 'pedido.confirmado');
+    await channel.bindQueue(queue.queue, 'pedidos.exchange', 'pedido.estado_cambiado');
     await channel.bindQueue(queue.queue, 'pedidos.exchange', 'pedido.*');
 
     console.log('✅ Conectado a RabbitMQ');

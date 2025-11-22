@@ -13,7 +13,7 @@ async function crearPedido(data) {
 
 async function obtenerPedidos(usuarioId = null) {
   const query = usuarioId ? { usuarioId } : {};
-  return await Pedido.find(query).populate('items.productoId');
+  return await Pedido.find(query).populate('items.productoId').sort({ updatedAt: -1 });
 }
 
 async function obtenerPedido(id) {
@@ -26,6 +26,36 @@ async function actualizarPedido(id, data) {
 
 async function eliminarPedido(id) {
   return await Pedido.findByIdAndDelete(id);
+}
+
+async function cambiarEstado(idPedido, nuevoEstado) {
+  const pedido = await Pedido.findById(idPedido);
+  if (!pedido) {
+    throw new Error('Pedido no encontrado');
+  }
+
+  const estadosPermitidos = ['PENDIENTE', 'CONFIRMADO', 'EN_PREPARACION', 'LISTO', 'ENTREGADO'];
+  if (!estadosPermitidos.includes(nuevoEstado)) {
+    throw new Error('Estado inválido');
+  }
+
+  const estadoAnterior = pedido.estado;
+  pedido.estado = nuevoEstado;
+  await pedido.save();
+
+  // Publicar evento a RabbitMQ
+  const { publishEstadoCambiado } = require('../events/producer');
+  try {
+    await publishEstadoCambiado(
+      pedido._id.toString(),
+      estadoAnterior,
+      nuevoEstado
+    );
+  } catch (eventError) {
+    console.error('Error publicando evento:', eventError);
+  }
+
+  return pedido;
 }
 
 async function confirmarPedido(idPedido) {
@@ -127,5 +157,6 @@ module.exports = {
   obtenerPedido,
   actualizarPedido,
   eliminarPedido,
-  confirmarPedido
+  confirmarPedido,
+  cambiarEstado
 };
