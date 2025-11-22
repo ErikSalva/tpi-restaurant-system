@@ -118,10 +118,10 @@ wss.on('connection', (ws) => {
 const startServices = async () => {
   await connectRabbitMQ();
   
-  console.log(`📋 Servicios disponibles:`);
-  console.log(`   GET  / - Información del servicio`);
-  console.log(`   GET  /health - Estado de salud`);
-  console.log(`   WS   / - Conexión WebSocket para tablero`);
+  console.log('📋 Servicios disponibles:');
+  console.log('   GET  / - Información del servicio');
+  console.log('   GET  /health - Estado de salud');
+  console.log('   WS   / - Conexión WebSocket para tablero');
 };
 
 startServices().catch(console.error);
