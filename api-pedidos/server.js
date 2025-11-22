@@ -65,9 +65,9 @@ const startServer = async () => {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
     console.log(`📊 Health check: http://localhost:${PORT}/health`);
-    console.log(`📋 API endpoints:`);
-    console.log(`   GET  / - Información de la API`);
-    console.log(`   GET  /health - Estado de salud`);
+    console.log('📋 API endpoints:');
+    console.log('   GET  / - Información de la API');
+    console.log('   GET  /health - Estado de salud');
   });
 };
 
