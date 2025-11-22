@@ -7,29 +7,42 @@ services:
   api-pedidos:
     build: ./api-pedidos
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:${PORT:-3000}"
     environment:
-      - NODE_ENV=development
-      - JWT_SECRET=dev-secret-change-me
-      - MONGODB_URI=mongodb://mongo:27017/restaurant_db
-      - RABBITMQ_URL=amqp://guest:guest@RabbitMQ:5672
-      - JWT_SECRET=mi-secret-key-super-segura-cambiar-en-produccion
+      - PORT=${PORT:-3000}
+      - NODE_ENV=${NODE_ENV:-development}
+      - JWT_SECRET=${JWT_SECRET}
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/restaurant_db}
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@RabbitMQ:5672}
     depends_on:
-      - mongo
-      - RabbitMQ
+      mongo:
+        condition: service_healthy
+      RabbitMQ:
+        condition: service_started
     networks:
       - restaurant-network
 
   #MongoDB
   mongo:
     image: mongo:7.0
-    command: mongod --replSet rs0
+    command: >
+      bash -c "
+      mongod --replSet rs0 --bind_ip_all &
+      until mongosh --eval 'db.runCommand({ ping: 1 })'; do sleep 1; done;
+      mongosh --eval 'try { rs.status() } catch(e) { rs.initiate({ _id: \"rs0\", members: [{ _id: 0, host: \"mongo:27017\" }] }) }';
+      wait
+      "
     environment:
       - MONGO_INITDB_DATABASE=restaurant_db
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - restaurant-network
 
@@ -51,11 +64,11 @@ services:
   servicio-cocina:
     build: ./servicio-cocina
     ports:
-      - "3001:3001"
+      - "${WEBSOCKET_PORT:-3001}:${WEBSOCKET_PORT:-3001}"
     environment:
-      - NODE_ENV=development
-      - RABBITMQ_URL=amqp://guest:guest@RabbitMQ:5672
-      - WEBSOCKET_PORT=3001
+      - NODE_ENV=${NODE_ENV:-development}
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@RabbitMQ:5672}
+      - WEBSOCKET_PORT=${WEBSOCKET_PORT:-3001}
     depends_on:
       - RabbitMQ
     networks:
