@@ -65,7 +65,7 @@ services:
     networks:
       - restaurant-network
 
-  # Servicio Cocina
+  # Servicio Cocina (Backend)
   servicio-cocina:
     build: ./servicio-cocina
     ports:
@@ -79,6 +79,19 @@ services:
       RabbitMQ:
         condition: service_healthy
       api-pedidos:
+        condition: service_started
+    networks:
+      - restaurant-network
+
+  # Tablero Cocina (Frontend)
+  tablero-cocina:
+    build: ./tablero-cocina
+    ports:
+      - "${TABLERO_PORT:-3003}:80"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+    depends_on:
+      servicio-cocina:
         condition: service_started
     networks:
       - restaurant-network

@@ -7,9 +7,8 @@
 │                 │      │                 │      │                 │
 │  Front Mesero   │◄─────┤     Nginx       │─────►│   API Pedidos   │
 │   (Browser)     │      │  Reverse Proxy  │      │   (Express)     │
-│                 │      │                 │      │                 │
+│   :8080         │      │                 │      │    :3000        │
 └────────┬────────┘      └────────┬────────┘      └────────┬────────┘
-         │                        │                         │
          │                        │                         │
          │ WebSocket              │                         │
          │                        │                         ▼
@@ -32,24 +31,57 @@
          │                        │                         ▼
          │                        │                ┌─────────────────┐
          │                        │                │                 │
-         │                        └───────────────►│ Servicio Cocina │
-         │                       WebSocket Server  │   (Consumer)    │
-         │                                         │                 │
-         └─────────────────────────────────────────┴─────────────────┘
-                          WebSocket
-
-┌──────────────────┐
-│  Tablero Cocina  │ (Browser)
-│  (index.html)    │
-└────────┬─────────┘
-         │
-         │ WebSocket
-         │
-         ▼
-┌─────────────────┐
-│ Servicio Cocina │
-└─────────────────┘
+         │                        └───────────────►│ Servicio Cocina │◄────┐
+         │                       WebSocket Server  │  (BACKEND)      │     │
+         │                                         │    :3001        │     │
+         └─────────────────────────────────────────┴─────────────────┘     │
+                          WebSocket                        │               │
+                                                            │               │
+                                                            │ WebSocket     │
+                                                            ▼               │
+                                                   ┌─────────────────┐     │
+                                                   │ Tablero Cocina  │     │
+                                                   │  (FRONTEND)     │     │
+                                                   │   Nginx:3003    │─────┘
+                                                   │  index.html     │ HTTP API
+                                                   └─────────────────┘
+                                                            │
+                                                            │ HTTP API
+                                                            ▼
+                                                   ┌─────────────────┐
+                                                   │   API Pedidos   │
+                                                   │     :3000       │
+                                                   └─────────────────┘
 ```
+
+## Componentes del Sistema
+
+### servicio-cocina (Puerto 3001) - BACKEND PURO
+
+**Responsabilidades:**
+
+- **RabbitMQ Consumer**: Consume eventos de la cola `cocina.pedidos`
+- **WebSocket Server**: Broadcast de eventos en tiempo real a clientes conectados
+- **NO sirve archivos estáticos**
+
+**Tecnologías:**
+
+- Express.js
+- WebSocket (ws)
+- amqplib (RabbitMQ client)
+
+### tablero-cocina (Puerto 3003) - FRONTEND PURO
+
+**Responsabilidades:**
+
+- **Interfaz de usuario**: Tablero visual para la cocina
+- **Cliente WebSocket**: Se conecta a servicio-cocina:3001
+- **Cliente HTTP**: Llama a API pedidos para autenticación y cambios de estado
+
+**Tecnologías:**
+
+- HTML/CSS/JavaScript vanilla
+- Nginx para servir archivos estáticos
 
 ## Flujo Detallado: Confirmar Pedido
 

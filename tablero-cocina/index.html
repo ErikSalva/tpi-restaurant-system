@@ -70,7 +70,6 @@
         .btn:hover { transform: translateY(-2px); }
         .btn-preparar { background: #FF9800; color: white; }
         .btn-listo { background: #4CAF50; color: white; }
-        .btn-entregar { background: #9E9E9E; color: white; }
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -108,7 +107,7 @@
             margin-right: 8px;
         }
         .connected { background-color: #4CAF50; }
-        .btn-entregar { background: #9E9E9E; color: white; }
+        .disconnected { background-color: #ef4444; }
         .login-prompt {
             background: rgba(255, 255, 255, 0.2);
             padding: 20px;
@@ -163,6 +162,10 @@
     </div>
 
     <script>
+        // Configuración del Servicio Cocina (backend)
+        const API_URL = 'http://localhost:3000';  // API Pedidos para autenticación y cambios de estado
+        const WS_URL = 'ws://localhost:3001';     // Servicio Cocina para WebSocket
+        
         let ws;
         let pedidosCount = 0;
         let token = localStorage.getItem('token_cocina');
@@ -177,7 +180,7 @@
             const password = document.getElementById('passwordInput').value;
             
             try {
-                const response = await fetch('http://localhost:3000/auth/token', {
+                const response = await fetch(`${API_URL}/auth/token`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
@@ -199,13 +202,10 @@
         }
         
         function connectWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}`;
-            
-            ws = new WebSocket(wsUrl);
+            ws = new WebSocket(WS_URL);
             
             ws.onopen = function() {
-                console.log('🔌 Conectado al WebSocket');
+                console.log('🔌 Conectado al BFF WebSocket');
                 updateConnectionStatus(true);
             };
             
@@ -225,7 +225,6 @@
             ws.onclose = function() {
                 console.log('🔌 Conexión WebSocket cerrada');
                 updateConnectionStatus(false);
-                // Reconectar después de 3 segundos
                 setTimeout(connectWebSocket, 3000);
             };
             
@@ -277,7 +276,7 @@
                     return;
                 }
                 
-                const response = await fetch(`http://localhost:3000/api/pedidos/${pedidoId}/${accion}`, {
+                const response = await fetch(`${API_URL}/pedidos/${pedidoId}/${accion}`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -298,21 +297,16 @@
         function updatePedidoEstado(data) {
             console.log('🔄 Actualizando estado de pedido:', data);
             const card = document.querySelector(`[data-pedido-id="${data.pedidoId}"]`);
-            console.log('🔍 Tarjeta encontrada:', card ? 'Sí' : 'No');
             
             if (card) {
-                // Si el pedido fue entregado, removerlo del tablero de cocina
                 if (data.estadoNuevo === 'ENTREGADO') {
-                    console.log('✅ Pedido entregado, removiendo de tablero cocina');
-                    // Decrementar contador de pedidos inmediatamente
+                    console.log('✅ Pedido entregado, removiendo de tablero');
                     pedidosCount = Math.max(0, pedidosCount - 1);
                     document.getElementById('pedidosCount').textContent = pedidosCount;
-                    console.log('📊 Contador actualizado:', pedidosCount);
                     
                     card.style.animation = 'slideOut 0.3s ease-out';
                     setTimeout(() => {
                         card.remove();
-                        // Verificar si no quedan más pedidos
                         const container = document.getElementById('pedidosContainer');
                         if (container.children.length === 0) {
                             container.innerHTML = `
@@ -340,15 +334,8 @@
                 
                 const actionsDiv = card.querySelector('.action-buttons');
                 if (actionsDiv) {
-                    console.log('✅ Actualizando botones para estado:', data.estadoNuevo);
                     actionsDiv.innerHTML = getActionButtons(data.pedidoId, data.estadoNuevo);
-                } else {
-                    console.log('⚠️ No se encontró div de acciones');
                 }
-            } else {
-                console.log('⚠️ No se encontró tarjeta con pedidoId:', data.pedidoId);
-                // Si no encontramos la tarjeta, podría ser que el pedido aún no esté en la vista
-                // En ese caso, no hacemos nada ya que aparecerá cuando se confirme
             }
         }
         
@@ -356,14 +343,12 @@
             pedidosCount++;
             document.getElementById('pedidosCount').textContent = pedidosCount;
             
-            // Remover mensaje de espera si existe
             const container = document.getElementById('pedidosContainer');
             const waitingMsg = container.querySelector('.pedido-card[style*="opacity: 0.7"]');
             if (waitingMsg) {
                 waitingMsg.remove();
             }
             
-            // Formatear items
             const itemsHtml = pedido.items && Array.isArray(pedido.items) 
                 ? pedido.items.map(item => `
                     <div class="item">
@@ -372,7 +357,6 @@
                   `).join('')
                 : '<div class="item">Sin items</div>';
             
-            // Crear tarjeta de pedido
             const pedidoCard = document.createElement('div');
             pedidoCard.className = 'pedido-card';
             pedidoCard.setAttribute('data-pedido-id', pedido.pedidoId);
@@ -392,16 +376,13 @@
                 </div>
             `;
             
-            // Agregar al inicio del contenedor
             container.insertBefore(pedidoCard, container.firstChild);
             
-            // Limitar a 10 pedidos visibles
             while (container.children.length > 10) {
                 container.removeChild(container.lastChild);
             }
         }
         
-        // Conectar al cargar la página
         connectWebSocket();
     </script>
 </body>
