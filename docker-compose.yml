@@ -14,6 +14,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/restaurant_db}
       - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@RabbitMQ:5672}
+      - APM_SERVER_URL=${APM_SERVER_URL} # <-- AGREGAR ESTA LÍNEA
     depends_on:
       mongo:
         condition: service_healthy
@@ -75,6 +76,8 @@ services:
       - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@RabbitMQ:5672}
       - WEBSOCKET_PORT=${WEBSOCKET_PORT:-3001}
       - API_PEDIDOS_URL=http://api-pedidos:${PORT:-3000}
+      - APM_SERVER_URL=${APM_SERVER_URL} # <-- AGREGAR ESTA LÍNEA
+      - APM_SECRET_TOKEN=${APM_SECRET_TOKEN}
     depends_on:
       RabbitMQ:
         condition: service_healthy
@@ -111,9 +114,76 @@ services:
     networks:
       - restaurant-network
 
+  elasticsearch:
+    image: elasticsearch:8.10.2 # Usar una versión específica
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=true # Habilitar seguridad
+      - ELASTIC_PASSWORD=mi_clave_elastic # Define una clave temporal para el usuario 'elastic'
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200" # Acceso desde el host (opcional, pero útil)
+    networks:
+      - restaurant-network # CLAVE: Asegura que Kibana pueda hablar con ES
+
+  kibana:
+    image: kibana:8.10.2 # Misma versión que ES
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200 # Usa el nombre del servicio de ES
+      - ELASTICSEARCH_USERNAME=kibana_system # <-- CAMBIAR A kibana_system
+      - ELASTICSEARCH_PASSWORD=MeWVRq4YEuvPTD9ie8w5 # Debe coincidir con la de ES
+
+    ports:
+      - "5601:5601" # Puerto de acceso a Kibana
+    networks:
+      - restaurant-network # CLAVE: Asegura que ES pueda hablar con APM/Filebeat
+
+  # 1. SERVIDOR APM (Para métricas y trazas de la API)
+  apm-server:
+    image: docker.elastic.co/apm/apm-server:8.10.2
+    container_name: apm-server
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - KIBANA_HOSTS=http://kibana:5601
+      - APM_SERVER_HOST=0.0.0.0
+      - SETUP_ALL=true # <--- AGREGAR ESTA LÍNEA
+    ports:
+      - "8200:8200" # Puerto para que el agente de la API se conecte
+    depends_on:
+      elasticsearch:
+        condition: service_started
+      kibana:
+        condition: service_started
+    networks:
+      - restaurant-network # Añadir a la red de la aplicación
+
+  # 2. FILEBEAT (Para recolectar logs JSON de Docker)
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.10.2
+    container_name: filebeat
+    user: root # Necesita permisos para leer logs de Docker
+    volumes:
+      # Asegúrate de crear este archivo en tu directorio raíz
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml
+      # Montar socket de Docker para obtener metadatos de los contenedores
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Montar logs de contenedores
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      elasticsearch:
+        condition: service_started
+    networks:
+      - restaurant-network # Añadir a la red de la aplicación
+    command: sh -c "chmod go-w /usr/share/filebeat/filebeat.yml && filebeat -e"
+
 volumes:
   mongo_data:
   rabbitmq_data:
+  esdata:
 
 networks:
   restaurant-network:

@@ -7,6 +7,27 @@ const fs = require('fs');
 const { connectRabbit } = require('./src/events/producer');
 require('dotenv').config();
 
+// APM
+if (process.env.APM_SERVER_URL) { // Usa una variable de entorno para controlar si se inicia
+  try {
+    const apm = require('elastic-apm-node').start({
+      // CLAVE: Usamos el nombre del servicio de Docker Compose
+      serverUrl: process.env.APM_SERVER_URL, 
+      serviceName: 'api-pedidos',
+      environment: process.env.NODE_ENV,
+      secretToken: process.env.APM_SECRET_TOKEN || '', // Opcional si usas seguridad en APM Server
+      captureExceptions: true,
+      logLevel: 'info',
+      // Instrumentación de MongoDB y RabbitMQ es automática con esta librería
+    });
+    console.log('✅ Elastic APM Agent inicializado');
+  } catch (error) {
+    console.warn('⚠️ Error inicializando Elastic APM Agent:', error.message);
+  }
+} else {
+  console.warn('⚠️ APM Agent deshabilitado (APM_SERVER_URL no definido)');
+}
+
 // Swagger UI
 let swaggerUi, YAML;
 try {
