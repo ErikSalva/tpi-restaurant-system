@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,7 +29,7 @@
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -105,7 +106,7 @@
             border-radius: 10px;
             max-width: 400px;
             margin: 100px auto;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .login-section h2 {
@@ -142,7 +143,7 @@
             background: white;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .card h2 {
@@ -238,8 +239,15 @@
         }
 
         @keyframes pulseGreen {
-            0%, 100% { background-color: white; }
-            50% { background-color: #d1fae5; }
+
+            0%,
+            100% {
+                background-color: white;
+            }
+
+            50% {
+                background-color: #d1fae5;
+            }
         }
 
         .pedido-header {
@@ -343,15 +351,22 @@
             background: white;
             padding: 15px 20px;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             border-left: 4px solid #10b981;
             z-index: 1000;
             animation: slideInRight 0.3s ease-out;
         }
 
         @keyframes slideInRight {
-            from { transform: translateX(400px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         .notification.hide {
@@ -359,11 +374,19 @@
         }
 
         @keyframes slideOutRight {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(400px); opacity: 0; }
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
         }
     </style>
 </head>
+
 <body>
     <div id="loginSection" class="login-section">
         <h2>🔐 Iniciar Sesión</h2>
@@ -457,20 +480,20 @@
 
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = `${protocol}//${window.location.host}/ws`;
-            
+
             console.log('🔌 Conectando a WebSocket:', wsUrl);
             ws = new WebSocket(wsUrl);
-            
-            ws.onopen = function() {
+
+            ws.onopen = function () {
                 console.log('✅ WebSocket conectado');
                 updateWSStatus(true);
             };
-            
-            ws.onmessage = function(event) {
+
+            ws.onmessage = function (event) {
                 try {
                     const message = JSON.parse(event.data);
                     console.log('📨 Mensaje WebSocket recibido:', message);
-                    
+
                     if (message.type === 'pedido.confirmado' || message.type === 'pedido_confirmado') {
                         handlePedidoConfirmado(message.data);
                     } else if (message.type === 'pedido.estado_cambiado') {
@@ -482,15 +505,15 @@
                     console.error('❌ Error procesando mensaje WebSocket:', error);
                 }
             };
-            
-            ws.onclose = function() {
+
+            ws.onclose = function () {
                 console.log('🔌 WebSocket desconectado');
                 updateWSStatus(false);
                 // Reconectar después de 3 segundos
                 setTimeout(connectWebSocket, 3000);
             };
-            
-            ws.onerror = function(error) {
+
+            ws.onerror = function (error) {
                 console.error('❌ Error en WebSocket:', error);
                 updateWSStatus(false);
             };
@@ -499,7 +522,7 @@
         function updateWSStatus(connected) {
             const status = document.getElementById('wsStatus');
             const text = document.getElementById('wsText');
-            
+
             if (status && text) {
                 if (connected) {
                     status.className = 'ws-status connected';
@@ -513,10 +536,10 @@
 
         function handlePedidoConfirmado(pedido) {
             console.log('🎉 Pedido confirmado:', pedido);
-            
+
             // Mostrar notificación
             showNotification(`Pedido #${pedido.pedidoId?.slice(-6)} confirmado exitosamente!`);
-            
+
             // Recargar lista de pedidos si estamos en esa pestaña
             const pedidosTab = document.getElementById('pedidosTab');
             if (pedidosTab && pedidosTab.classList.contains('active')) {
@@ -526,21 +549,21 @@
 
         function handleEstadoCambiado(data) {
             console.log('🔄 Estado cambiado:', data);
-            
+
             const estadoTextos = {
                 'EN_PREPARACION': 'En Preparación',
                 'LISTO': 'Listo',
                 'ENTREGADO': 'Entregado'
             };
-            
+
             const estadoTexto = estadoTextos[data.estadoNuevo] || data.estadoNuevo;
-            
+
             // Mostrar notificación
             showNotification(`Pedido #${data.pedidoId?.slice(-6)} ahora está: ${estadoTexto}`);
-            
+
             // Actualizar cache de estados
             pedidosCache.set(data.pedidoId, data.estadoNuevo);
-            
+
             // Recargar lista de pedidos si estamos en esa pestaña
             const pedidosTab = document.getElementById('pedidosTab');
             if (pedidosTab && pedidosTab.classList.contains('active')) {
@@ -555,9 +578,9 @@
                 <strong>✅ Notificación</strong>
                 <p style="margin-top: 5px;">${message}</p>
             `;
-            
+
             document.body.appendChild(notification);
-            
+
             setTimeout(() => {
                 notification.classList.add('hide');
                 setTimeout(() => notification.remove(), 300);
@@ -571,7 +594,7 @@
             const errorDiv = document.getElementById('loginError');
 
             try {
-                const response = await fetch(`${API_URL}/auth/token`, {
+                const response = await fetch(`${API_URL}/auth/token`, { // Asegúrate que la ruta coincida con tu backend (a veces es /auth/login o /auth/token)
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
@@ -585,16 +608,23 @@
                 }
 
                 if (response.ok) {
-                    token = data.token;
+                    // --- CAMBIO AQUÍ: Usamos access_token ---
+                    token = data.access_token;
                     localStorage.setItem('token', token);
-                    localStorage.setItem('userEmail', email);
+
+                    // Si tu backend devuelve usuario_info, úsalo. Si no, usa el email del input.
+                    const userEmail = data.usuario_info ? data.usuario_info.email : email;
+                    localStorage.setItem('userEmail', userEmail);
+
                     errorDiv.classList.add('hidden');
                     showMainSection();
                     cargarProductos();
                     cargarPedidos();
                     connectWebSocket();
                 } else {
-                    errorDiv.textContent = data.error || 'Credenciales inválidas';
+                    // OAuth2 suele devolver 'error_description' o 'error'
+                    const mensajeError = data.error_description || data.error || 'Credenciales inválidas';
+                    errorDiv.textContent = mensajeError;
                     errorDiv.classList.remove('hidden');
                 }
             } catch (error) {
@@ -626,7 +656,7 @@
         function showTab(tabName, element) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            
+
             if (element) {
                 element.classList.add('active');
             } else {
@@ -802,7 +832,7 @@
 
         function renderPedidos(pedidos) {
             const container = document.getElementById('pedidosList');
-            
+
             if (pedidos.length === 0) {
                 container.innerHTML = '<p style="text-align: center; color: #6b7280;">No hay pedidos</p>';
                 return;
@@ -812,18 +842,18 @@
 
             container.innerHTML = pedidos.map(pedido => {
                 let totalPedido = 0;
-                
+
                 // Verificar si el pedido fue actualizado
-                const wasUpdated = pedidosCache.has(pedido._id) && 
-                                   pedidosCache.get(pedido._id) !== pedido.estado;
-                
+                const wasUpdated = pedidosCache.has(pedido._id) &&
+                    pedidosCache.get(pedido._id) !== pedido.estado;
+
                 // Actualizar cache
                 pedidosCache.set(pedido._id, pedido.estado);
-                
+
                 const itemsHtml = pedido.items.map(item => {
                     let precioUnitario = item.precioUnitario;
                     let nombreProducto = item.nombreProducto;
-                    
+
                     if (!precioUnitario && item.productoId) {
                         const producto = productos.find(p => p._id === item.productoId._id || p._id === item.productoId);
                         if (producto) {
@@ -831,10 +861,10 @@
                             nombreProducto = producto.nombre;
                         }
                     }
-                    
+
                     const subtotal = (precioUnitario || 0) * (item.cantidad || 0);
                     totalPedido += subtotal;
-                    
+
                     return `
                         <div style="display: flex; justify-content: space-between; padding: 5px 0;">
                             <span>${nombreProducto || 'Producto'} x${item.cantidad || 0}</span>
@@ -958,4 +988,5 @@
         }
     </script>
 </body>
+
 </html>

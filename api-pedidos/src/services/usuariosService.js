@@ -80,35 +80,44 @@ async function eliminarUsuario(id) {
  */
 async function autenticarUsuario(email, password) {
   const usuario = await obtenerUsuarioPorEmail(email);
-  
+
   if (!usuario) {
-    throw new Error('Credenciales inválidas');
+    throw new Error('Credenciales inválidas'); // En OAuth2 estricto sería 'invalid_grant'
   }
 
   const passwordValido = await bcrypt.compare(password, usuario.passwordHash);
-  
+
   if (!passwordValido) {
     throw new Error('Credenciales inválidas');
   }
 
+  // Mapeamos ROLES a SCOPES (OAuth2 usa scopes)
+  const scopes = usuario.roles.includes('ADMIN') ? 'read write delete' : 'read write';
+
+  // Configuración de expiración
+  const expiresInSeconds = 86400; // 24 horas
+
   // Generar token JWT
   const token = jwt.sign(
-    { 
-      userId: usuario._id, 
-      email: usuario.email, 
-      roles: usuario.roles 
+    {
+      userId: usuario._id,
+      email: usuario.email,
+      roles: usuario.roles,
+      scope: scopes 
     },
     process.env.JWT_SECRET || 'secret-key-change-in-production',
-    { expiresIn: '24h' }
+    { expiresIn: expiresInSeconds }
   );
 
-  // Devolver usuario sin passwordHash
-  const usuarioResponse = usuario.toObject();
-  delete usuarioResponse.passwordHash;
-
   return {
-    token,
-    usuario: usuarioResponse
+    access_token: token,
+    token_type: 'Bearer',
+    expires_in: expiresInSeconds,
+    scope: scopes,
+    usuario_info: {
+      email: usuario.email,
+      roles: usuario.roles
+    }
   };
 }
 

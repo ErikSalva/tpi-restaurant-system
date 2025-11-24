@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,14 +14,17 @@
             color: white;
             min-height: 100vh;
         }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
         }
+
         .header {
             text-align: center;
             margin-bottom: 30px;
         }
+
         .status {
             background: rgba(255, 255, 255, 0.1);
             padding: 15px;
@@ -28,11 +32,13 @@
             margin-bottom: 20px;
             backdrop-filter: blur(10px);
         }
+
         .pedidos-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
         }
+
         .pedido-card {
             background: rgba(255, 255, 255, 0.15);
             padding: 20px;
@@ -41,6 +47,7 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             animation: slideIn 0.5s ease-out;
         }
+
         .estado-badge {
             display: inline-block;
             padding: 6px 12px;
@@ -49,16 +56,30 @@
             font-weight: bold;
             margin: 10px 0;
         }
-        .estado-CONFIRMADO { background: #2196F3; }
-        .estado-EN_PREPARACION { background: #FF9800; }
-        .estado-LISTO { background: #4CAF50; }
-        .estado-ENTREGADO { background: #9E9E9E; }
+
+        .estado-CONFIRMADO {
+            background: #2196F3;
+        }
+
+        .estado-EN_PREPARACION {
+            background: #FF9800;
+        }
+
+        .estado-LISTO {
+            background: #4CAF50;
+        }
+
+        .estado-ENTREGADO {
+            background: #9E9E9E;
+        }
+
         .action-buttons {
             margin-top: 15px;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
         }
+
         .btn {
             padding: 8px 16px;
             border: none;
@@ -67,26 +88,56 @@
             font-weight: bold;
             transition: all 0.3s;
         }
-        .btn:hover { transform: translateY(-2px); }
-        .btn-preparar { background: #FF9800; color: white; }
-        .btn-listo { background: #4CAF50; color: white; }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-preparar {
+            background: #FF9800;
+            color: white;
+        }
+
+        .btn-listo {
+            background: #4CAF50;
+            color: white;
+        }
+
         @keyframes slideIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
+
         @keyframes slideOut {
-            from { opacity: 1; transform: translateX(0); }
-            to { opacity: 0; transform: translateX(100px); }
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateX(100px);
+            }
         }
+
         .pedido-id {
             font-size: 1.2em;
             font-weight: bold;
             margin-bottom: 10px;
             color: #ffd700;
         }
+
         .pedido-items {
             margin: 10px 0;
         }
+
         .item {
             background: rgba(255, 255, 255, 0.1);
             padding: 8px 12px;
@@ -94,11 +145,13 @@
             border-radius: 8px;
             border-left: 4px solid #4CAF50;
         }
+
         .timestamp {
             font-size: 0.9em;
             color: #ccc;
             margin-top: 10px;
         }
+
         .connection-status {
             display: inline-block;
             width: 12px;
@@ -106,8 +159,15 @@
             border-radius: 50%;
             margin-right: 8px;
         }
-        .connected { background-color: #4CAF50; }
-        .disconnected { background-color: #ef4444; }
+
+        .connected {
+            background-color: #4CAF50;
+        }
+
+        .disconnected {
+            background-color: #ef4444;
+        }
+
         .login-prompt {
             background: rgba(255, 255, 255, 0.2);
             padding: 20px;
@@ -116,6 +176,7 @@
             backdrop-filter: blur(10px);
             text-align: center;
         }
+
         .login-prompt input {
             padding: 10px;
             margin: 10px 5px;
@@ -123,19 +184,21 @@
             border-radius: 5px;
             width: 200px;
         }
+
         .login-prompt button {
             padding: 10px 20px;
             margin: 10px 5px;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
             <h1>🍳 Tablero de Cocina</h1>
             <p>Sistema de Pedidos en Tiempo Real</p>
         </div>
-        
+
         <div id="loginPrompt" class="login-prompt" style="display: none;">
             <h3>⚠️ Se requiere autenticación</h3>
             <p>Por favor ingresa tus credenciales para cambiar estados de pedidos</p>
@@ -143,7 +206,7 @@
             <input type="password" id="passwordInput" placeholder="Contraseña">
             <button class="btn btn-preparar" onclick="loginCocina()">Iniciar Sesión</button>
         </div>
-        
+
         <div class="status">
             <h3>Estado de Conexión</h3>
             <p>
@@ -152,7 +215,7 @@
             </p>
             <p>Pedidos recibidos: <span id="pedidosCount">0</span></p>
         </div>
-        
+
         <div class="pedidos-container" id="pedidosContainer">
             <div class="pedido-card" style="text-align: center; opacity: 0.7;">
                 <h3>⏳ Esperando pedidos...</h3>
@@ -165,54 +228,57 @@
         // Configuración del Servicio Cocina (backend)
         const API_URL = 'http://localhost:3000';  // API Pedidos para autenticación y cambios de estado
         const WS_URL = 'ws://localhost:3001';     // Servicio Cocina para WebSocket
-        
+
         let ws;
         let pedidosCount = 0;
         let token = localStorage.getItem('token_cocina');
-        
+
         // Verificar si hay token al cargar
         if (!token) {
             document.getElementById('loginPrompt').style.display = 'block';
         }
-        
+
         async function loginCocina() {
             const email = document.getElementById('emailInput').value;
             const password = document.getElementById('passwordInput').value;
-            
+
             try {
+                // Asegúrate de que el endpoint sea el correcto (/auth/token)
                 const response = await fetch(`${API_URL}/auth/token`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
-                
+
+                const data = await response.json(); // Leemos el JSON primero
+
                 if (response.ok) {
-                    const data = await response.json();
-                    token = data.token;
+                    token = data.access_token;
                     localStorage.setItem('token_cocina', token);
                     document.getElementById('loginPrompt').style.display = 'none';
                     alert('✅ Sesión iniciada correctamente');
                 } else {
-                    alert('❌ Credenciales incorrectas');
+                    const msg = data.error_description || data.error || 'Credenciales incorrectas';
+                    alert(`❌ ${msg}`);
                 }
             } catch (error) {
                 console.error('Error en login:', error);
                 alert('❌ Error de conexión');
             }
         }
-        
+
         function connectWebSocket() {
             ws = new WebSocket(WS_URL);
-            
-            ws.onopen = function() {
+
+            ws.onopen = function () {
                 console.log('🔌 Conectado al BFF WebSocket');
                 updateConnectionStatus(true);
             };
-            
-            ws.onmessage = function(event) {
+
+            ws.onmessage = function (event) {
                 const message = JSON.parse(event.data);
                 console.log('📨 Mensaje recibido:', message);
-                
+
                 if (message.type === 'pedido.confirmado' || message.type === 'pedido_confirmado') {
                     addPedido(message.data);
                 } else if (message.type === 'pedido.estado_cambiado') {
@@ -221,23 +287,23 @@
                     console.log('👋', message.message);
                 }
             };
-            
-            ws.onclose = function() {
+
+            ws.onclose = function () {
                 console.log('🔌 Conexión WebSocket cerrada');
                 updateConnectionStatus(false);
                 setTimeout(connectWebSocket, 3000);
             };
-            
-            ws.onerror = function(error) {
+
+            ws.onerror = function (error) {
                 console.error('❌ Error en WebSocket:', error);
                 updateConnectionStatus(false);
             };
         }
-        
+
         function updateConnectionStatus(connected) {
             const status = document.getElementById('connectionStatus');
             const text = document.getElementById('connectionText');
-            
+
             if (connected) {
                 status.className = 'connection-status connected';
                 text.textContent = 'Conectado';
@@ -246,7 +312,7 @@
                 text.textContent = 'Desconectado';
             }
         }
-        
+
         function getEstadoBadge(estado) {
             const estadoMap = {
                 'CONFIRMADO': 'Confirmado',
@@ -256,7 +322,7 @@
             };
             return `<span class="estado-badge estado-${estado}">${estadoMap[estado] || estado}</span>`;
         }
-        
+
         function getActionButtons(pedidoId, estado) {
             if (estado === 'CONFIRMADO') {
                 return `<button class="btn btn-preparar" onclick="cambiarEstado('${pedidoId}', 'en-preparacion')">Iniciar Preparación</button>`;
@@ -267,7 +333,7 @@
             }
             return '';
         }
-        
+
         async function cambiarEstado(pedidoId, accion) {
             try {
                 if (!token) {
@@ -275,7 +341,7 @@
                     document.getElementById('loginPrompt').style.display = 'block';
                     return;
                 }
-                
+
                 const response = await fetch(`${API_URL}/pedidos/${pedidoId}/${accion}`, {
                     method: 'POST',
                     headers: {
@@ -283,7 +349,7 @@
                         'Content-Type': 'application/json'
                     }
                 });
-                
+
                 if (!response.ok) {
                     const error = await response.json();
                     alert(`Error: ${error.message || 'No se pudo cambiar el estado'}`);
@@ -293,17 +359,17 @@
                 alert('Error de red al cambiar el estado del pedido');
             }
         }
-        
+
         function updatePedidoEstado(data) {
             console.log('🔄 Actualizando estado de pedido:', data);
             const card = document.querySelector(`[data-pedido-id="${data.pedidoId}"]`);
-            
+
             if (card) {
                 if (data.estadoNuevo === 'ENTREGADO') {
                     console.log('✅ Pedido entregado, removiendo de tablero');
                     pedidosCount = Math.max(0, pedidosCount - 1);
                     document.getElementById('pedidosCount').textContent = pedidosCount;
-                    
+
                     card.style.animation = 'slideOut 0.3s ease-out';
                     setTimeout(() => {
                         card.remove();
@@ -319,7 +385,7 @@
                     }, 300);
                     return;
                 }
-                
+
                 const estadoBadge = card.querySelector('.estado-badge');
                 if (estadoBadge) {
                     const estadoMap = {
@@ -331,32 +397,32 @@
                     estadoBadge.className = `estado-badge estado-${data.estadoNuevo}`;
                     estadoBadge.textContent = estadoMap[data.estadoNuevo] || data.estadoNuevo;
                 }
-                
+
                 const actionsDiv = card.querySelector('.action-buttons');
                 if (actionsDiv) {
                     actionsDiv.innerHTML = getActionButtons(data.pedidoId, data.estadoNuevo);
                 }
             }
         }
-        
+
         function addPedido(pedido) {
             pedidosCount++;
             document.getElementById('pedidosCount').textContent = pedidosCount;
-            
+
             const container = document.getElementById('pedidosContainer');
             const waitingMsg = container.querySelector('.pedido-card[style*="opacity: 0.7"]');
             if (waitingMsg) {
                 waitingMsg.remove();
             }
-            
-            const itemsHtml = pedido.items && Array.isArray(pedido.items) 
+
+            const itemsHtml = pedido.items && Array.isArray(pedido.items)
                 ? pedido.items.map(item => `
                     <div class="item">
                         ${item.cantidad}x ${item.nombreProducto} - $${item.precioUnitario.toFixed(2)}
                     </div>
                   `).join('')
                 : '<div class="item">Sin items</div>';
-            
+
             const pedidoCard = document.createElement('div');
             pedidoCard.className = 'pedido-card';
             pedidoCard.setAttribute('data-pedido-id', pedido.pedidoId);
@@ -375,15 +441,16 @@
                     ${getActionButtons(pedido.pedidoId, pedido.estado || 'CONFIRMADO')}
                 </div>
             `;
-            
+
             container.insertBefore(pedidoCard, container.firstChild);
-            
+
             while (container.children.length > 10) {
                 container.removeChild(container.lastChild);
             }
         }
-        
+
         connectWebSocket();
     </script>
 </body>
+
 </html>
