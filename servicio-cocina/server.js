@@ -1,8 +1,10 @@
+require('dotenv').config();
+const apm = require('./apm.js');
+
 const express = require('express');
 const WebSocket = require('ws');
 const amqp = require('amqplib');
 const cors = require('cors');
-require('dotenv').config();
 
 const app = express();
 const PORT = process.env.WEBSOCKET_PORT || 3001;
@@ -49,9 +51,24 @@ const connectRabbitMQ = async () => {
     // Consumir mensajes
     channel.consume(queue.queue, (msg) => {
       if (msg) {
+        //Captura la traza
+        const traceparentHeader = msg.properties.headers?.traceparent;
+
+        // Iniciar transacción (usando el traceparent si existe)
+        const transaction = apm.startTransaction(
+            msg.fields.routingKey, // Nombre de la transacción (ej: pedido.confirmado)
+            'messaging',           // Tipo de transacción
+            { childOf: traceparentHeader } // Reanudar la traza si traceparent está presente
+        );
+
         try {
           const content = JSON.parse(msg.content.toString());
           const routingKey = msg.fields.routingKey;
+
+          // Etiquetar la traza con el ID del pedido (asumiendo que viene en content)
+          if (transaction && content.pedidoId) {
+              apm.setLabel('pedido_id', content.pedidoId, transaction);
+          }
 
           console.log(`📨 Mensaje recibido [${routingKey}]:`, content);
 
@@ -66,8 +83,16 @@ const connectRabbitMQ = async () => {
           channel.ack(msg);
         } catch (error) {
           console.error('❌ Error procesando mensaje:', error);
+
+          // Capturar Error y Finalizar Traza si hay excepción
+          if (apm) apm.captureError(error, { custom: { routingKey: msg.fields.routingKey } });
+          channel.nack(msg, false, false);
+          
           // Rechazar mensaje y no re-encolar
           channel.nack(msg, false, false);
+        } finally {
+            // Finalizar la transaccion APM
+            if (transaction) transaction.end();
         }
       }
     });
