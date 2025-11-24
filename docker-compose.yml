@@ -20,6 +20,8 @@ services:
         condition: service_healthy
       RabbitMQ:
         condition: service_healthy
+      apm-server:
+        condition: service_started
     networks:
       - restaurant-network
 
@@ -135,7 +137,7 @@ services:
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200 # Usa el nombre del servicio de ES
       - ELASTICSEARCH_USERNAME=kibana_system # <-- CAMBIAR A kibana_system
-      - ELASTICSEARCH_PASSWORD=MeWVRq4YEuvPTD9ie8w5 # Debe coincidir con la de ES
+      - ELASTICSEARCH_PASSWORD=NZEaljoUgiY6SehO0_kZ # Debe coincidir con la de ES
 
     ports:
       - "5601:5601" # Puerto de acceso a Kibana
@@ -146,11 +148,15 @@ services:
   apm-server:
     image: docker.elastic.co/apm/apm-server:8.10.2
     container_name: apm-server
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - KIBANA_HOSTS=http://kibana:5601
-      - APM_SERVER_HOST=0.0.0.0
-      - SETUP_ALL=true # <--- AGREGAR ESTA LÍNEA
+    command: >-
+      apm-server -e
+        -E output.elasticsearch.hosts=["http://elasticsearch:9200"]
+        -E output.elasticsearch.username=elastic
+        -E output.elasticsearch.password=mi_clave_elastic
+        -E apm-server.kibana.host=kibana:5601
+        -E apm-server.auth.secret_token=TuTokenSecretoParaAPM
+        -E monitoring.enabled=false
+        -E apm-server.kibana.enabled=true
     ports:
       - "8200:8200" # Puerto para que el agente de la API se conecte
     depends_on:
