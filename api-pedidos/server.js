@@ -78,16 +78,21 @@ const connectDB = async () => {
 
 //RabbitMQ
 const connectRabbitMQ = async () => {
-  try {
-    const rabbitUrl = process.env.RABBITMQ_URL || 'amqp://guest:guest@RabbitMQ:5672';
-    const connection = await amqp.connect(rabbitUrl);
-    const channel = await connection.createChannel();
-    console.log('✅ Conectado a RabbitMQ');
-    return { connection, channel };
-  } catch (error) {
-    console.error('Error conectando a RabbitMQ:', error);
-    // No detener el servidor si RabbitMQ no está disponible
-    return null;
+  const rabbitUrl = process.env.RABBITMQ_URL || 'amqp://guest:guest@RabbitMQ:5672';
+  
+  while (true) { // Bucle  hasta que sea exitoso
+    try {
+      const connection = await amqp.connect(rabbitUrl);
+      const channel = await connection.createChannel();
+      
+      console.log('✅ Conectado a RabbitMQ y canal creado.');
+      return { connection, channel }; // Sale exitosamente
+      
+    } catch (error) {
+      console.error('❌ Error conectando a RabbitMQ. Reintentando en 5 segundos...');
+      // 💡 Retraso que permite a RabbitMQ terminar de arrancar
+      await new Promise(resolve => setTimeout(resolve, 5000)); 
+    }
   }
 };
 

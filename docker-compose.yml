@@ -12,11 +12,11 @@ services:
     environment:
       - PORT=${PORT:-3000}
       - NODE_ENV=${NODE_ENV:-development}
-      - JWT_SECRET=${JWT_SECRET}
+      - JWT_SECRET=${JWT_SECRET:-supersecreto}
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/restaurant_db}
       - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@RabbitMQ:5672}
-      - APM_SERVER_URL=${APM_SERVER_URL}
-      - APM_SECRET_TOKEN=TuTokenSecretoParaAPM
+      - APM_SERVER_URL=${APM_SERVER_URL:-http://apm-server:8200}
+      - APM_SECRET_TOKEN=${APM_SECRET_TOKEN:-TuTokenSecretoParaAPM}
     depends_on:
       mongo:
         condition: service_healthy
@@ -83,8 +83,8 @@ services:
       - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@RabbitMQ:5672}
       - WEBSOCKET_PORT=${WEBSOCKET_PORT:-3001}
       - API_PEDIDOS_URL=http://api-pedidos:${PORT:-3000}
-      - APM_SERVER_URL=${APM_SERVER_URL}
-      - APM_SECRET_TOKEN=${APM_SECRET_TOKEN}
+      - APM_SERVER_URL=${APM_SERVER_URL:-http://apm-server:8200}
+      - APM_SECRET_TOKEN=${APM_SECRET_TOKEN:-TuTokenSecretoParaAPM}
     depends_on:
       RabbitMQ:
         condition: service_healthy
@@ -134,17 +134,23 @@ services:
       - xpack.security.enabled=true
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
 
-      # ✔ contraseña fija para elastic
-      - ELASTIC_PASSWORD=MiClaveElastic123
-
-      # ✔ contraseña fija para kibana_system (variable oficial!)
-      - KIBANA_PASSWORD=MiClaveKibana123
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-MiClaveElastic123}
+      - KIBANA_PASSWORD=${KIBANA_SYSTEM_PASSWORD:-MiClaveKibana123}
     volumes:
       - esdata:/usr/share/elasticsearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     ports:
       - "9200:9200"
     networks:
       - restaurant-network
+    healthcheck:
+      test: ["CMD-SHELL", 'curl -fs -u elastic:${ELASTIC_PASSWORD:-MiClaveElastic123} http://localhost:9200/_cluster/health | grep -q "\"status\"" || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
 
   #Kibana
@@ -154,9 +160,11 @@ services:
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
       - ELASTICSEARCH_USERNAME=kibana_system
-      - ELASTICSEARCH_PASSWORD=MiClaveKibana123
+      - ELASTICSEARCH_PASSWORD=${KIBANA_SYSTEM_PASSWORD:-MiClaveKibana123}
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY:-TuClaveSeguraDe32CaracteresAqui1}
     depends_on:
-      - elasticsearch
+      elasticsearch:
+        condition: service_healthy
     ports:
       - "5601:5601"
     networks:
@@ -170,16 +178,16 @@ services:
       apm-server -e
         -E output.elasticsearch.hosts=["http://elasticsearch:9200"]
         -E output.elasticsearch.username=elastic
-        -E output.elasticsearch.password=MiClaveElastic123
+        -E output.elasticsearch.password=${ELASTIC_PASSWORD:-MiClaveElastic123}
         -E apm-server.kibana.host=kibana:5601
-        -E apm-server.auth.secret_token=TuTokenSecretoParaAPM
+        -E apm-server.auth.secret_token=${APM_SERVER_SECRET_TOKEN:-TuTokenSecretoParaAPM}
         -E monitoring.enabled=false
         -E apm-server.kibana.enabled=true
     ports:
       - "8200:8200"
     depends_on:
       elasticsearch:
-        condition: service_started
+        condition: service_healthy
       kibana:
         condition: service_started
     networks:
@@ -190,6 +198,8 @@ services:
     image: docker.elastic.co/beats/filebeat:8.10.2
     container_name: filebeat
     user: root
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-MiClaveElastic123}
     volumes:
       # Archivo en tu directorio raíz
       - ./filebeat.yml:/usr/share/filebeat/filebeat.yml
