@@ -68,6 +68,7 @@ const connectRabbitMQ = async () => {
           // Etiquetar la traza con el ID del pedido (asumiendo que viene en content)
           if (transaction && content.pedidoId) {
               apm.setLabel('pedido_id', content.pedidoId, transaction);
+              apm.setLabel('pedido_estado', content.estadoNuevo, transaction); 
           }
 
           console.log(`📨 Mensaje recibido [${routingKey}]:`, content);
