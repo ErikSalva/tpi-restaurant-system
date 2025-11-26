@@ -213,6 +213,47 @@ services:
     networks:
       - restaurant-network
     command: sh -c "chmod go-w /usr/share/filebeat/filebeat.yml && filebeat -e"
+  
+  elastic-init:
+    image: curlimages/curl:8.10.1
+    container_name: elastic-init
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_started
+    entrypoint: >
+      sh -c '
+        echo "Esperando a Elasticsearch...";
+        sleep 5;
+
+        echo "Actualizando password de kibana_system...";
+        curl -s -u elastic:${ELASTIC_PASSWORD:-MiClaveElastic123} \
+          -X POST http://elasticsearch:9200/_security/user/kibana_system/_password \
+          -H "Content-Type: application/json" \
+          -d "{\"password\":\"${KIBANA_SYSTEM_PASSWORD:-MiClaveKibana123}\"}";
+
+        echo "Password actualizado"
+        echo "Esperando a Kibana...";
+        until curl -s -u elastic:${ELASTIC_PASSWORD:-MiClaveElastic123} http://kibana:5601/api/status | grep -q "\"available\""; do
+          echo "Kibana aún no está listo...";
+          sleep 3;
+        done;
+
+
+        echo "Kibana operativo. Creando Data View filebeat-* ...";
+
+        RESP=$(curl -w "%{http_code}" -o /tmp/resp.txt \
+          -u elastic:${ELASTIC_PASSWORD:-MiClaveElastic123} \
+          -X POST http://kibana:5601/api/data_views/data_view \
+          -H "Content-Type: application/json" \
+          -H "kbn-xsrf: true" \
+          -d "{\"data_view\": {\"title\": \"filebeat-*\", \"name\": \"Filebeat Logs\", \"id\": \"filebeat-dataview\", \"timeFieldName\": \"@timestamp\"}}")
+
+        echo "✔️ Data View creado correctamente"
+      '
+    networks:
+      - restaurant-network
 
 volumes:
   mongo_data:
