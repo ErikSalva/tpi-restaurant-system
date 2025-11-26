@@ -79,13 +79,15 @@ const connectDB = async () => {
 //RabbitMQ
 const connectRabbitMQ = async () => {
   const rabbitUrl = process.env.RABBITMQ_URL || 'amqp://guest:guest@RabbitMQ:5672';
-  
-  while (true) { // Bucle  hasta que sea exitoso
+  let connected = false;
+
+  while (!connected) { // Bucle  hasta que sea exitoso
     try {
       const connection = await amqp.connect(rabbitUrl);
       const channel = await connection.createChannel();
       
       console.log('✅ Conectado a RabbitMQ y canal creado.');
+      connected = true;
       return { connection, channel }; // Sale exitosamente
       
     } catch (error) {

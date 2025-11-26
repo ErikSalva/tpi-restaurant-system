@@ -1,15 +1,15 @@
 const apm = require('elastic-apm-node').start({
-    serverUrl: process.env.APM_SERVER_URL, 
-    serviceName: 'servicio-cocina',
-    environment: process.env.NODE_ENV,
-    secretToken: process.env.APM_SECRET_TOKEN,
-    captureExceptions: true,
-    logLevel: 'error',
-    centralErrorLogger: false,
-    captureErrorLogStackTraces: 'never',
-    captureBody: 'all',
+  serverUrl: process.env.APM_SERVER_URL, 
+  serviceName: 'servicio-cocina',
+  environment: process.env.NODE_ENV,
+  secretToken: process.env.APM_SECRET_TOKEN,
+  captureExceptions: true,
+  logLevel: 'error',
+  centralErrorLogger: false,
+  captureErrorLogStackTraces: 'never',
+  captureBody: 'all',
         
-    usePathAsTransactionName: true
+  usePathAsTransactionName: true
 });
   
 module.exports = apm;

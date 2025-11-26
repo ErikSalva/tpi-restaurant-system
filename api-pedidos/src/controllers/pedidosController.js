@@ -1,5 +1,5 @@
-const apm = require("../../apm")
-const { trazarPedido } = require("../utils/apmPedido");
+const apm = require('../../apm');
+const { trazarPedido } = require('../utils/apmPedido');
 const pedidosService = require('../services/pedidosService');
 
 /**
@@ -105,7 +105,7 @@ exports.confirmarPedido = async (req, res) => {
       pedido
     });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(400).json({ error: error.message });
   }
 };

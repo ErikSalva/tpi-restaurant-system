@@ -28,7 +28,7 @@ async function publishPedidoConfirmado(pedido) {
     : apm.currentTransaction?.traceparent;
   
   if (traceparent) {
-      headers.traceparent = traceparent;
+    headers.traceparent = traceparent;
   }
   channel.publish(
     'pedidos.exchange',
@@ -61,7 +61,7 @@ async function publishEstadoCambiado(pedidoId, estadoAnterior, estadoNuevo) {
     : apm.currentTransaction?.traceparent;
   
   if (traceparent) {
-      headers.traceparent = traceparent;
+    headers.traceparent = traceparent;
   }
 
   channel.publish(

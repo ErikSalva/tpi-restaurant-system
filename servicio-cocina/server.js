@@ -56,9 +56,9 @@ const connectRabbitMQ = async () => {
 
         // Iniciar transacción (usando el traceparent si existe)
         const transaction = apm.startTransaction(
-            msg.fields.routingKey, // Nombre de la transacción (ej: pedido.confirmado)
-            'messaging',           // Tipo de transacción
-            { childOf: traceparentHeader } // Reanudar la traza si traceparent está presente
+          msg.fields.routingKey, // Nombre de la transacción (ej: pedido.confirmado)
+          'messaging',           // Tipo de transacción
+          { childOf: traceparentHeader } // Reanudar la traza si traceparent está presente
         );
 
         try {
@@ -67,8 +67,8 @@ const connectRabbitMQ = async () => {
 
           // Etiquetar la traza con el ID del pedido (asumiendo que viene en content)
           if (transaction && content.pedidoId) {
-              apm.setLabel('pedido_id', content.pedidoId, transaction);
-              apm.setLabel('pedido_estado', content.estadoNuevo, transaction); 
+            apm.setLabel('pedido_id', content.pedidoId, transaction);
+            apm.setLabel('pedido_estado', content.estadoNuevo, transaction); 
           }
 
           console.log(`📨 Mensaje recibido [${routingKey}]:`, content);
@@ -92,8 +92,8 @@ const connectRabbitMQ = async () => {
           // Rechazar mensaje y no re-encolar
           channel.nack(msg, false, false);
         } finally {
-            // Finalizar la transaccion APM
-            if (transaction) transaction.end();
+          // Finalizar la transaccion APM
+          if (transaction) transaction.end();
         }
       }
     });
