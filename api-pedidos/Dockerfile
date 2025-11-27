@@ -11,6 +11,9 @@ RUN npm install
 # Copiar el código fuente
 COPY . .
 
+# Copiar openapi.yaml
+COPY ../openapi.yaml ./openapi.yaml
+
 # Exponer el puerto
 EXPOSE 3000
 

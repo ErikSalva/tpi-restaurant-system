@@ -57,13 +57,6 @@ router.get(
   pedidosController.obtenerPedido
 );
 
-router.put(
-  '/:id',
-  validate(objectIdParam, 'params'),
-  authorizeRoles('USER', 'ADMIN'),
-  pedidosController.actualizarPedido
-);
-
 router.delete(
   '/:id',
   validate(objectIdParam, 'params'),

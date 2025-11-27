@@ -116,6 +116,39 @@ WEBSOCKET_PORT=3001
 
 ---
 
+## Usuarios de Prueba
+
+| Email                    | Password    | Rol   | Descripción                          |
+| ------------------------ | ----------- | ----- | ------------------------------------ |
+| `mesero@restaurante.com` | `mesero123` | USER  | Usuario mesero con permisos básicos  |
+| `admin@restaurante.com`  | `admin123`  | ADMIN | Administrador con todos los permisos |
+
+## Cómo Ejecutar Pruebas
+
+### Colección Postman
+
+La colección completa de Postman incluye **24 endpoints** con tests automatizados.
+
+**Importar en Postman:**
+
+1. Abrir Postman
+2. Import → Seleccionar archivos de `/postman`
+3. Seleccionar environment "Local" o "Docker"
+4. Ejecutar "Autenticación → Login" para obtener token
+
+**Carpetas de la colección:**
+
+- **Sistema** (2 endpoints): Health check, API info
+- **Autenticación** (2 endpoints): Login con JWT
+- **Productos** (5 endpoints): CRUD completo
+- **Pedidos** (9 endpoints): CRUD + transacción + cambios de estado
+- **Usuarios** (6 endpoints): Gestión de usuarios
+- **Flujo Completo Demo** (8 pasos): Secuencia end-to-end
+
+Ver documentación completa: [`/postman/README.md`](./postman/README.md)
+
+---
+
 ## Versionado
 
 | Versión         | Tag    | Último commit |
@@ -129,3 +162,5 @@ WEBSOCKET_PORT=3001
 - Especificación OpenAPI: [`openapi.yaml`](./openapi.yaml)
 - Diagramas y ADRs: [`/docs`](./docs)
 - Arquitectura completa: [`ARCHITECTURE.md`](./ARCHITECTURE.md)
+- Colección Postman: [`/postman`](./postman)
+- Swagger UI: http://localhost:3000/api-docs

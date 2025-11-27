@@ -101,20 +101,8 @@ const connectRabbitMQ = async () => {
 // Servir archivos estáticos (debe ir antes de las rutas)
 app.use(express.static('public'));
 
-// Rutas básicas
-app.get('/api', (req, res) => {
-  res.json({
-    message: '¡Hola! API del Sistema de Restaurante funcionando correctamente',
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    services: {
-      database: 'MongoDB',
-      broker: 'RabbitMQ'
-    }
-  });
-});
-
-app.get('/health', (req, res) => {
+// Health check
+app.get('/api/health', (req, res) => {
   res.json({
     status: 'healthy',
     database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
@@ -126,10 +114,7 @@ app.get('/health', (req, res) => {
 app.use('/api/pedidos', pedidosRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/productos', productosRoutes);
-// Rutas sin /api para Swagger (openapi.yaml)
-app.use('/pedidos', pedidosRoutes);
-app.use('/productos', productosRoutes);
-app.use('/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 
 // Iniciar servidor
 const startServer = async () => {
@@ -139,11 +124,8 @@ const startServer = async () => {
   
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-    console.log(`📊 Health check: http://localhost:${PORT}/health`);
+    console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
     console.log(`📚 Swagger UI: http://localhost:${PORT}/api-docs`);
-    console.log('📋 API endpoints:');
-    console.log('   GET  / - Información de la API');
-    console.log('   GET  /health - Estado de salud');
   });
 };
 

@@ -14,7 +14,7 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: "Token JWT obtenido desde /auth/token"
-  
+
   schemas:
     LoginRequest:
       type: object
@@ -35,7 +35,7 @@ components:
           type: string
           example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         usuario:
-          $ref: '#/components/schemas/Usuario'
+          $ref: "#/components/schemas/Usuario"
 
     Producto:
       type: object
@@ -102,7 +102,7 @@ components:
           type: number
           format: double
           example: 1500.50
-    
+
     Pedido:
       type: object
       properties:
@@ -119,7 +119,7 @@ components:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/ItemEmbebido'
+            $ref: "#/components/schemas/ItemEmbebido"
         subtotal:
           type: number
           format: double
@@ -136,7 +136,7 @@ components:
           type: string
           format: date-time
           example: "2025-10-25T14:35:00Z"
-    
+
     CreatePedidoInputItem:
       description: "Item enviado por el cliente para crear un pedido"
       type: object
@@ -149,14 +149,14 @@ components:
           minimum: 1
           example: 2
       required: [productoId, cantidad]
-    
+
     CreatePedidoInput:
       type: object
       properties:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/CreatePedidoInputItem'
+            $ref: "#/components/schemas/CreatePedidoInputItem"
       required: [items]
 
     Usuario:
@@ -182,6 +182,26 @@ components:
           type: string
           format: date-time
           example: "2025-10-25T14:35:00Z"
+
+    CreateUsuarioInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: "nuevo@restaurante.com"
+        password:
+          type: string
+          format: password
+          example: "password123"
+        roles:
+          type: array
+          items:
+            type: string
+            enum: [USER, ADMIN]
+          example: ["USER"]
+      required: [email, password]
+
     ErrorResponse:
       type: object
       properties:
@@ -199,18 +219,21 @@ tags:
     description: "CRUD de la Entidad 1: Gestión del catálogo."
   - name: Pedidos
     description: "CRUD de la Entidad 2: Gestión de pedidos (incluye la transacción)."
+  - name: Usuarios
+    description: "CRUD de usuarios del sistema."
   - name: Sistema
     description: Endpoints de monitoreo (health check).
 
 paths:
-  /health:
+  /api/health:
     get:
-      summary: Verifica el estado del servicio
+      summary: Health check del servicio
+      description: Verifica el estado del servicio y la conexión a MongoDB
       tags: [Sistema]
-      security: [] 
+      security: []
       responses:
-        '200':
-          description: OK
+        "200":
+          description: Servicio funcionando correctamente
           content:
             application/json:
               schema:
@@ -219,82 +242,88 @@ paths:
                   status:
                     type: string
                     example: "healthy"
-  
-  /auth/token:
+                  database:
+                    type: string
+                    example: "connected"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/auth/token:
     post:
       summary: Obtener un token JWT
       description: Envía credenciales (email/password) para obtener un token JWT.
       tags: [Autenticación]
-      security: [] 
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequest'
-            example: 
+              $ref: "#/components/schemas/LoginRequest"
+            example:
               email: "admin@restaurante.com"
               password: "admin123"
       responses:
-        '200':
+        "200":
           description: Token JWT y datos de usuario
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginResponse'
-        '401':
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
           description: Credenciales inválidas
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-                
-  /productos:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/productos:
     get:
       summary: Listar productos del catálogo
       tags: [Productos]
       responses:
-        '200':
+        "200":
           description: Lista de productos
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Producto'
+                  $ref: "#/components/schemas/Producto"
     post:
       summary: Crear un nuevo producto (Admin)
       tags: [Productos]
       security:
-        - bearerAuth: ["ADMIN"] 
+        - bearerAuth: ["ADMIN"]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateProductoInput'
-            example: 
+              $ref: "#/components/schemas/CreateProductoInput"
+            example:
               nombre: "Papas Fritas"
               descripcion: "Con cheddar y panceta"
               precio: 700.00
               stock: 100
       responses:
-        '201':
+        "201":
           description: Producto creado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Producto'
-        '400':
+                $ref: "#/components/schemas/Producto"
+        "400":
           description: Error de validación
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
           description: Prohibido (No es Admin)
 
-  /productos/{id}:
+  /api/productos/{id}:
     get:
       summary: Obtener un producto por ID
       tags: [Productos]
@@ -306,30 +335,94 @@ paths:
             type: string
             example: "67123a..."
       responses:
-        '200':
+        "200":
           description: Producto encontrado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Producto'
-        '404':
+                $ref: "#/components/schemas/Producto"
+        "404":
           description: No encontrado
-          
-  /pedidos:
+
+    put:
+      summary: Actualizar un producto (Admin)
+      tags: [Productos]
+      security:
+        - bearerAuth: ["ADMIN"]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "67123a..."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre:
+                  type: string
+                descripcion:
+                  type: string
+                precio:
+                  type: number
+                stock:
+                  type: integer
+                disponible:
+                  type: boolean
+            example:
+              precio: 1600.00
+              stock: 35
+      responses:
+        "200":
+          description: Producto actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Producto"
+        "404":
+          description: Producto no encontrado
+        "403":
+          description: Prohibido (No es Admin)
+
+    delete:
+      summary: Eliminar un producto (Admin)
+      tags: [Productos]
+      security:
+        - bearerAuth: ["ADMIN"]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "67123a..."
+      responses:
+        "204":
+          description: Producto eliminado exitosamente
+        "404":
+          description: Producto no encontrado
+        "403":
+          description: Prohibido (No es Admin)
+
+  /api/pedidos:
     get:
       summary: Listar mis pedidos
       description: Devuelve la lista de pedidos del usuario autenticado (via JWT).
       tags: [Pedidos]
       responses:
-        '200':
+        "200":
           description: Lista de pedidos del usuario
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Pedido'
-    
+                  $ref: "#/components/schemas/Pedido"
+
     post:
       summary: "Crear un nuevo pedido"
       description: "Crea un nuevo pedido, ejecuta la transacción de stock y publica el evento de creación."
@@ -339,21 +432,21 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreatePedidoInput'
-            example: 
+              $ref: "#/components/schemas/CreatePedidoInput"
+            example:
               items:
                 - productoId: "67123a..."
                   cantidad: 1
-                - productoId: "67123c..." 
+                - productoId: "67123c..."
                   cantidad: 2
       responses:
-        '201':
+        "201":
           description: Pedido creado exitosamente
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Pedido'
-              example: 
+                $ref: "#/components/schemas/Pedido"
+              example:
                 _id: "67123b..."
                 usuarioId: "67123f..."
                 estado: "CONFIRMADO"
@@ -370,14 +463,130 @@ paths:
                 total: 2900.50
                 createdAt: "2025-10-25T14:30:00Z"
                 updatedAt: "2025-10-25T14:30:00Z"
-        '400':
+        "400":
           description: "Error de negocio (ej. Stock insuficiente)"
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-                
-  /pedidos/{id}:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/pedidos/{id}/confirmar:
+    post:
+      summary: Confirmar un pedido (Transacción)
+      description: |
+        Confirma un pedido en estado PENDIENTE. Ejecuta una transacción que:
+        - Valida que el pedido esté en estado PENDIENTE
+        - Valida stock disponible para cada producto
+        - Descuenta el stock de los productos
+        - Calcula totales (subtotal, total)
+        - Actualiza el estado a CONFIRMADO
+        - Publica un evento a RabbitMQ con routing key "pedido.confirmado"
+
+        **Transacción atómica**: Si alguna validación falla, se revierte todo.
+      tags: [Pedidos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "67123b..."
+          description: ID del pedido a confirmar
+      responses:
+        "200":
+          description: Pedido confirmado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Pedido confirmado correctamente"
+                  pedido:
+                    $ref: "#/components/schemas/Pedido"
+        "400":
+          description: Error de validación o negocio
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Pedido no encontrado
+
+  /api/pedidos/{id}/en-preparacion:
+    post:
+      summary: Marcar pedido en preparación
+      description: Cambia el estado del pedido de CONFIRMADO a EN_PREPARACION. La cocina indica que empezó a preparar el pedido.
+      tags: [Pedidos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "67123b..."
+      responses:
+        "200":
+          description: Estado actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pedido"
+        "400":
+          description: Estado inválido para esta transición
+        "404":
+          description: Pedido no encontrado
+
+  /api/pedidos/{id}/listo:
+    post:
+      summary: Marcar pedido listo
+      description: Cambia el estado del pedido de EN_PREPARACION a LISTO. La cocina indica que el pedido está listo para entregar.
+      tags: [Pedidos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "67123b..."
+      responses:
+        "200":
+          description: Estado actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pedido"
+        "400":
+          description: Estado inválido para esta transición
+        "404":
+          description: Pedido no encontrado
+
+  /api/pedidos/{id}/entregado:
+    post:
+      summary: Marcar pedido entregado
+      description: Cambia el estado del pedido de LISTO a ENTREGADO. El mesero confirma que entregó el pedido al cliente.
+      tags: [Pedidos]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "67123b..."
+      responses:
+        "200":
+          description: Estado actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pedido"
+        "400":
+          description: Estado inválido para esta transición
+        "404":
+          description: Pedido no encontrado
+
+  /api/pedidos/{id}:
     get:
       summary: Obtener un pedido por ID
       description: "Obtiene un pedido, verificando que pertenezca al usuario."
@@ -390,11 +599,195 @@ paths:
             type: string
             example: "67123b..."
       responses:
-        '200':
+        "200":
           description: Pedido encontrado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Pedido'
-        '404':
+                $ref: "#/components/schemas/Pedido"
+        "404":
           description: No encontrado
+
+    delete:
+      summary: Eliminar un pedido (Admin)
+      description: Elimina un pedido del sistema. Requiere rol ADMIN.
+      tags: [Pedidos]
+      security:
+        - bearerAuth: ["ADMIN"]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "67123b..."
+      responses:
+        "204":
+          description: Pedido eliminado exitosamente
+        "404":
+          description: Pedido no encontrado
+        "403":
+          description: Prohibido (No es Admin)
+
+  /api/usuarios:
+    post:
+      summary: Crear un nuevo usuario (Admin)
+      description: Crea un nuevo usuario en el sistema. Requiere rol ADMIN.
+      tags: [Usuarios]
+      security:
+        - bearerAuth: ["ADMIN"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUsuarioInput"
+            example:
+              email: "nuevo@restaurante.com"
+              password: "password123"
+              roles: ["USER"]
+      responses:
+        "201":
+          description: Usuario creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "400":
+          description: Error de validación
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Prohibido (No es Admin)
+
+    get:
+      summary: Listar todos los usuarios
+      description: Devuelve la lista de todos los usuarios registrados. Requiere autenticación.
+      tags: [Usuarios]
+      responses:
+        "200":
+          description: Lista de usuarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Usuario"
+        "401":
+          description: No autenticado
+
+  /api/usuarios/me:
+    get:
+      summary: Obtener mi perfil
+      description: Devuelve los datos del usuario autenticado (desde el token JWT).
+      tags: [Usuarios]
+      responses:
+        "200":
+          description: Perfil del usuario autenticado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "401":
+          description: No autenticado
+        "404":
+          description: Usuario no encontrado
+
+  /api/usuarios/{id}:
+    get:
+      summary: Obtener un usuario por ID
+      description: Obtiene los datos de un usuario específico. Requiere autenticación.
+      tags: [Usuarios]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "67123f..."
+      responses:
+        "200":
+          description: Usuario encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "404":
+          description: Usuario no encontrado
+        "401":
+          description: No autenticado
+
+    put:
+      summary: Actualizar un usuario (Admin)
+      description: Actualiza los datos de un usuario existente. Requiere rol ADMIN.
+      tags: [Usuarios]
+      security:
+        - bearerAuth: ["ADMIN"]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "67123f..."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                roles:
+                  type: array
+                  items:
+                    type: string
+            example:
+              email: "actualizado@restaurante.com"
+      responses:
+        "200":
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "404":
+          description: Usuario no encontrado
+        "403":
+          description: Prohibido (No es Admin)
+
+    delete:
+      summary: Eliminar un usuario (Admin)
+      description: Elimina un usuario del sistema. Requiere rol ADMIN.
+      tags: [Usuarios]
+      security:
+        - bearerAuth: ["ADMIN"]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "67123f..."
+      responses:
+        "200":
+          description: Usuario eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Usuario eliminado"
+        "404":
+          description: Usuario no encontrado
+        "403":
+          description: Prohibido (No es Admin)

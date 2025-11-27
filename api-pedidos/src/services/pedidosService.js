@@ -20,10 +20,6 @@ async function obtenerPedido(id) {
   return await Pedido.findById(id).populate('items.productoId');
 }
 
-async function actualizarPedido(id, data) {
-  return await Pedido.findByIdAndUpdate(id, data, { new: true });
-}
-
 async function eliminarPedido(id) {
   return await Pedido.findByIdAndDelete(id);
 }
@@ -156,7 +152,6 @@ module.exports = {
   crearPedido,
   obtenerPedidos,
   obtenerPedido,
-  actualizarPedido,
   eliminarPedido,
   confirmarPedido,
   cambiarEstado
