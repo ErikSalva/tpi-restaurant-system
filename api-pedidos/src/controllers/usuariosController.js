@@ -12,7 +12,7 @@ exports.crearUsuario = async (req, res) => {
 exports.obtenerPerfil = async (req, res) => {
   try {
     // req.user viene del middleware authenticate
-    const usuario = await usuariosService.obtenerUsuario(req.user.userId);
+    const usuario = await usuariosService.obtenerUsuario(req.user._id);
     if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
     res.json(usuario);
   } catch (error) {
