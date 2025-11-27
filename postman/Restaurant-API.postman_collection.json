@@ -1,0 +1,1098 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-4789-a1b2-c3d4e5f67890",
+		"name": "Restaurant API - Sistema de Pedidos",
+		"description": "Colección completa de la API REST para el sistema de gestión de pedidos de restaurante.\n\n## Configuración\n1. Importar esta colección en Postman\n2. Configurar el environment (Local o Desarrollo)\n3. Ejecutar \"Auth - Login\" para obtener el token\n4. El token se guarda automáticamente en las variables\n\n## Flujo recomendado\n1. Login (obtener token)\n2. Listar productos\n3. Crear pedido\n4. Confirmar pedido (transacción)\n5. Cambiar estados (en-preparacion → listo → entregado)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Sistema",
+			"item": [
+				{
+					"name": "Health Check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Service is healthy\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(\"healthy\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						},
+						"description": "Verifica el estado de salud del servicio y la conexión a MongoDB"
+					},
+					"response": []
+				}
+			],
+			"description": "Health check del sistema"
+		},
+		{
+			"name": "Autenticación",
+			"item": [
+				{
+					"name": "Login - Obtener Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Token received\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.access_token).to.exist;",
+									"    ",
+									"    // Guardar token en variables de entorno",
+									"    pm.environment.set(\"token\", jsonData.access_token);",
+									"    pm.collectionVariables.set(\"token\", jsonData.access_token);",
+									"    ",
+									"    console.log(\"Token guardado: \" + jsonData.access_token.substring(0, 20) + \"...\");",
+									"});",
+									"",
+									"pm.test(\"Token has expiration\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.expires_in).to.eql(86400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{defaultEmail}}\",\n  \"password\": \"{{defaultPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/token",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "token"]
+						},
+						"description": "Obtiene un token JWT para autenticación. El token se guarda automáticamente en las variables de entorno."
+					},
+					"response": []
+				},
+				{
+					"name": "Login - Usuario Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json();",
+									"if (jsonData.access_token) {",
+									"    pm.environment.set(\"adminToken\", jsonData.access_token);",
+									"    pm.collectionVariables.set(\"adminToken\", jsonData.access_token);",
+									"    console.log(\"Admin token guardado\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@restaurante.com\",\n  \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/token",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "token"]
+						},
+						"description": "Login específico para usuario ADMIN"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints de autenticación OAuth2 + JWT"
+		},
+		{
+			"name": "Productos",
+			"item": [
+				{
+					"name": "Listar Productos",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});",
+									"",
+									"// Guardar primer producto para pruebas",
+									"var productos = pm.response.json();",
+									"if (productos.length > 0) {",
+									"    pm.environment.set(\"productoId\", productos[0]._id);",
+									"    console.log(\"Producto guardado: \" + productos[0].nombre);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/productos",
+							"host": ["{{baseUrl}}"],
+							"path": ["productos"]
+						},
+						"description": "Obtiene el catálogo completo de productos. Endpoint público, no requiere autenticación."
+					},
+					"response": []
+				},
+				{
+					"name": "Obtener Producto por ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/productos/{{productoId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["productos", "{{productoId}}"]
+						},
+						"description": "Obtiene un producto específico por su ID. Endpoint público."
+					},
+					"response": []
+				},
+				{
+					"name": "Crear Producto (ADMIN)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"var jsonData = pm.response.json();",
+									"if (jsonData._id) {",
+									"    pm.environment.set(\"nuevoProductoId\", jsonData._id);",
+									"    console.log(\"Nuevo producto creado: \" + jsonData._id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"Pizza Napolitana\",\n  \"descripcion\": \"Salsa de tomate, mozzarella, albahaca fresca\",\n  \"precio\": 1200.00,\n  \"stock\": 25,\n  \"disponible\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/productos",
+							"host": ["{{baseUrl}}"],
+							"path": ["productos"]
+						},
+						"description": "Crea un nuevo producto. Requiere rol ADMIN."
+					},
+					"response": []
+				},
+				{
+					"name": "Actualizar Producto (ADMIN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"precio\": 1350.00,\n  \"stock\": 30,\n  \"disponible\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/productos/{{productoId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["productos", "{{productoId}}"]
+						},
+						"description": "Actualiza un producto existente. Requiere rol ADMIN."
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar Producto (ADMIN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/productos/{{nuevoProductoId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["productos", "{{nuevoProductoId}}"]
+						},
+						"description": "Elimina un producto. Requiere rol ADMIN."
+					},
+					"response": []
+				}
+			],
+			"description": "CRUD de productos (Entidad 1)"
+		},
+		{
+			"name": "Pedidos",
+			"item": [
+				{
+					"name": "Crear Pedido",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Pedido created with PENDIENTE state\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.estado).to.eql(\"PENDIENTE\");",
+									"    ",
+									"    // Guardar ID del pedido",
+									"    pm.environment.set(\"pedidoId\", jsonData._id);",
+									"    console.log(\"Pedido creado: \" + jsonData._id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"items\": [\n    {\n      \"productoId\": \"{{productoId}}\",\n      \"cantidad\": 2\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/pedidos",
+							"host": ["{{baseUrl}}"],
+							"path": ["pedidos"]
+						},
+						"description": "Crea un nuevo pedido en estado PENDIENTE. Requiere autenticación."
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Mis Pedidos",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/pedidos",
+							"host": ["{{baseUrl}}"],
+							"path": ["pedidos"]
+						},
+						"description": "Lista todos los pedidos del usuario autenticado"
+					},
+					"response": []
+				},
+				{
+					"name": "Obtener Pedido por ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/pedidos/{{pedidoId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["pedidos", "{{pedidoId}}"]
+						},
+						"description": "Obtiene un pedido específico por ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Confirmar Pedido (TRANSACCIÓN)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Pedido confirmed\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.pedido.estado).to.eql(\"CONFIRMADO\");",
+									"});",
+									"",
+									"pm.test(\"Total calculated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.pedido.total).to.be.above(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/pedidos/{{pedidoId}}/confirmar",
+							"host": ["{{baseUrl}}"],
+							"path": ["pedidos", "{{pedidoId}}", "confirmar"]
+						},
+						"description": "**TRANSACCIÓN MULTI-PASO**\n\nConfirma un pedido en estado PENDIENTE:\n1. Valida stock disponible\n2. Descuenta stock de productos\n3. Calcula totales\n4. Cambia estado a CONFIRMADO\n5. Publica evento a RabbitMQ\n\nTransacción atómica: si algo falla, se revierte todo."
+					},
+					"response": []
+				},
+				{
+					"name": "Marcar En Preparación",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Estado changed to EN_PREPARACION\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.estado).to.eql(\"EN_PREPARACION\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/pedidos/{{pedidoId}}/en-preparacion",
+							"host": ["{{baseUrl}}"],
+							"path": ["pedidos", "{{pedidoId}}", "en-preparacion"]
+						},
+						"description": "Cambia el estado del pedido de CONFIRMADO a EN_PREPARACION. Usado por la cocina."
+					},
+					"response": []
+				},
+				{
+					"name": "Marcar Listo",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Estado changed to LISTO\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.estado).to.eql(\"LISTO\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/pedidos/{{pedidoId}}/listo",
+							"host": ["{{baseUrl}}"],
+							"path": ["pedidos", "{{pedidoId}}", "listo"]
+						},
+						"description": "Cambia el estado del pedido de EN_PREPARACION a LISTO. La cocina indica que está listo para entregar."
+					},
+					"response": []
+				},
+				{
+					"name": "Marcar Entregado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Estado changed to ENTREGADO\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.estado).to.eql(\"ENTREGADO\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/pedidos/{{pedidoId}}/entregado",
+							"host": ["{{baseUrl}}"],
+							"path": ["pedidos", "{{pedidoId}}", "entregado"]
+						},
+						"description": "Cambia el estado del pedido de LISTO a ENTREGADO. El mesero confirma la entrega al cliente."
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar Pedido (ADMIN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/pedidos/{{pedidoId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["pedidos", "{{pedidoId}}"]
+						},
+						"description": "Elimina un pedido. Requiere rol ADMIN."
+					},
+					"response": []
+				}
+			],
+			"description": "CRUD de pedidos (Entidad 2) + Transacción de confirmación + Cambios de estado"
+		},
+		{
+			"name": "Usuarios",
+			"item": [
+				{
+					"name": "Crear Usuario (ADMIN)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"var jsonData = pm.response.json();",
+									"if (jsonData._id) {",
+									"    pm.environment.set(\"nuevoUsuarioId\", jsonData._id);",
+									"    console.log(\"Usuario creado: \" + jsonData._id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"nuevo.usuario@restaurante.com\",\n  \"password\": \"password123\",\n  \"roles\": [\"USER\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/usuarios",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "usuarios"]
+						},
+						"description": "Crea un nuevo usuario (requiere rol ADMIN)"
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Usuarios",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/usuarios",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "usuarios"]
+						},
+						"description": "Lista todos los usuarios del sistema (requiere autenticación)"
+					},
+					"response": []
+				},
+				{
+					"name": "Obtener Mi Perfil",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/usuarios/me",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "usuarios", "me"]
+						},
+						"description": "Obtiene el perfil del usuario autenticado"
+					},
+					"response": []
+				},
+				{
+					"name": "Obtener Usuario por ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/usuarios/{{nuevoUsuarioId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "usuarios", "{{nuevoUsuarioId}}"]
+						},
+						"description": "Obtiene un usuario específico por ID (requiere autenticación)"
+					},
+					"response": []
+				},
+				{
+					"name": "Actualizar Usuario (ADMIN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"usuario.actualizado@restaurante.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/usuarios/{{nuevoUsuarioId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "usuarios", "{{nuevoUsuarioId}}"]
+						},
+						"description": "Actualiza un usuario existente (requiere rol ADMIN)"
+					},
+					"response": []
+				},
+				{
+					"name": "Eliminar Usuario (ADMIN)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/usuarios/{{nuevoUsuarioId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "usuarios", "{{nuevoUsuarioId}}"]
+						},
+						"description": "Elimina un usuario del sistema (requiere rol ADMIN)"
+					},
+					"response": []
+				}
+			],
+			"description": "Gestión de usuarios del sistema"
+		},
+		{
+			"name": "Flujo Completo Demo",
+			"item": [
+				{
+					"name": "1. Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"token\", jsonData.access_token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{defaultEmail}}\",\n  \"password\": \"{{defaultPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/token",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "token"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2. Listar Productos",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var productos = pm.response.json();",
+									"if (productos.length > 0) {",
+									"    pm.environment.set(\"productoId\", productos[0]._id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/productos",
+							"host": ["{{baseUrl}}"],
+							"path": ["productos"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3. Crear Pedido",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"pedidoId\", jsonData._id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"items\": [\n    {\n      \"productoId\": \"{{productoId}}\",\n      \"cantidad\": 2\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/pedidos",
+							"host": ["{{baseUrl}}"],
+							"path": ["pedidos"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "4. Confirmar Pedido (Transacción)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/pedidos/{{pedidoId}}/confirmar",
+							"host": ["{{baseUrl}}"],
+							"path": ["pedidos", "{{pedidoId}}", "confirmar"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "5. Marcar En Preparación",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/pedidos/{{pedidoId}}/en-preparacion",
+							"host": ["{{baseUrl}}"],
+							"path": ["pedidos", "{{pedidoId}}", "en-preparacion"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "6. Marcar Listo",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/pedidos/{{pedidoId}}/listo",
+							"host": ["{{baseUrl}}"],
+							"path": ["pedidos", "{{pedidoId}}", "listo"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "7. Marcar Entregado",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/pedidos/{{pedidoId}}/entregado",
+							"host": ["{{baseUrl}}"],
+							"path": ["pedidos", "{{pedidoId}}", "entregado"]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Secuencia completa del flujo principal (7 pasos): Login → Listar → Crear → Confirmar → Estados"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "adminToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "productoId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "pedidoId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "nuevoProductoId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "nuevoUsuarioId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "defaultEmail",
+			"value": "mesero@restaurante.com",
+			"type": "string"
+		},
+		{
+			"key": "defaultPassword",
+			"value": "mesero123",
+			"type": "string"
+		}
+	]
+}
