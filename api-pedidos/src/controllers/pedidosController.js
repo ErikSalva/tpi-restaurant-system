@@ -53,18 +53,6 @@ exports.obtenerPedido = async (req, res) => {
 };
 
 /**
- * Actualizar pedido
- */
-exports.actualizarPedido = async (req, res) => {
-  try {
-    const pedido = await pedidosService.actualizarPedido(req.params.id, req.body);
-    res.json(pedido);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
-/**
  * Eliminar un pedido
  */
 exports.eliminarPedido = async (req, res) => {
