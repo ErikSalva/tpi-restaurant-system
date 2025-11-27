@@ -124,6 +124,7 @@ async function confirmarPedido(idPedido) {
 
     try {
       await publishPedidoConfirmado({
+        estadoNuevo: pedido.estado,
         pedidoId: pedido._id.toString(),
         usuarioId: pedido.usuarioId.toString(),
         total: pedido.total,

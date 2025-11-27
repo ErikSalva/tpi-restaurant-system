@@ -1,3 +1,6 @@
+require('dotenv').config();
+const apm = require('./apm.js');
+
 const express = require('express');
 const mongoose = require('mongoose');
 const amqp = require('amqplib');
@@ -5,7 +8,8 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const { connectRabbit } = require('./src/events/producer');
-require('dotenv').config();
+
+
 
 // Swagger UI
 let swaggerUi, YAML;
@@ -74,16 +78,23 @@ const connectDB = async () => {
 
 //RabbitMQ
 const connectRabbitMQ = async () => {
-  try {
-    const rabbitUrl = process.env.RABBITMQ_URL || 'amqp://guest:guest@RabbitMQ:5672';
-    const connection = await amqp.connect(rabbitUrl);
-    const channel = await connection.createChannel();
-    console.log('✅ Conectado a RabbitMQ');
-    return { connection, channel };
-  } catch (error) {
-    console.error('Error conectando a RabbitMQ:', error);
-    // No detener el servidor si RabbitMQ no está disponible
-    return null;
+  const rabbitUrl = process.env.RABBITMQ_URL || 'amqp://guest:guest@RabbitMQ:5672';
+  let connected = false;
+
+  while (!connected) { // Bucle  hasta que sea exitoso
+    try {
+      const connection = await amqp.connect(rabbitUrl);
+      const channel = await connection.createChannel();
+      
+      console.log('✅ Conectado a RabbitMQ y canal creado.');
+      connected = true;
+      return { connection, channel }; // Sale exitosamente
+      
+    } catch (error) {
+      console.error('❌ Error conectando a RabbitMQ. Reintentando en 5 segundos...');
+      // 💡 Retraso que permite a RabbitMQ terminar de arrancar
+      await new Promise(resolve => setTimeout(resolve, 5000)); 
+    }
   }
 };
 

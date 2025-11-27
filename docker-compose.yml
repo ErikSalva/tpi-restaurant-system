@@ -6,25 +6,31 @@ services:
   # API Pedidos
   api-pedidos:
     build: ./api-pedidos
+    container_name: api-pedidos
     ports:
       - "${PORT:-3000}:${PORT:-3000}"
     environment:
       - PORT=${PORT:-3000}
       - NODE_ENV=${NODE_ENV:-development}
-      - JWT_SECRET=${JWT_SECRET}
+      - JWT_SECRET=${JWT_SECRET:-supersecreto}
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/restaurant_db}
       - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@RabbitMQ:5672}
+      - APM_SERVER_URL=${APM_SERVER_URL:-http://apm-server:8200}
+      - APM_SECRET_TOKEN=${APM_SECRET_TOKEN:-TuTokenSecretoParaAPM}
     depends_on:
       mongo:
         condition: service_healthy
       RabbitMQ:
         condition: service_healthy
+      apm-server:
+        condition: service_started
     networks:
       - restaurant-network
 
   #MongoDB
   mongo:
     image: mongo:7.0
+    container_name: mongo
     command: >
       bash -c "
       mongod --replSet rs0 --bind_ip_all &
@@ -49,6 +55,7 @@ services:
   #RabbitMQ
   RabbitMQ:
     image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
@@ -68,6 +75,7 @@ services:
   # Servicio Cocina (Backend)
   servicio-cocina:
     build: ./servicio-cocina
+    container_name: servicio-cocina
     ports:
       - "${WEBSOCKET_PORT:-3001}:${WEBSOCKET_PORT:-3001}"
     environment:
@@ -75,10 +83,14 @@ services:
       - RABBITMQ_URL=${RABBITMQ_URL:-amqp://guest:guest@RabbitMQ:5672}
       - WEBSOCKET_PORT=${WEBSOCKET_PORT:-3001}
       - API_PEDIDOS_URL=http://api-pedidos:${PORT:-3000}
+      - APM_SERVER_URL=${APM_SERVER_URL:-http://apm-server:8200}
+      - APM_SECRET_TOKEN=${APM_SECRET_TOKEN:-TuTokenSecretoParaAPM}
     depends_on:
       RabbitMQ:
         condition: service_healthy
       api-pedidos:
+        condition: service_started
+      apm-server:
         condition: service_started
     networks:
       - restaurant-network
@@ -86,6 +98,7 @@ services:
   # Tablero Cocina (Frontend)
   tablero-cocina:
     build: ./tablero-cocina
+    container_name: tablero-cocina
     ports:
       - "${TABLERO_PORT:-3003}:80"
     environment:
@@ -99,6 +112,7 @@ services:
   # Front Mesero
   front-mesero:
     build: ./front-mesero
+    container_name: front-mesero
     ports:
       - "${FRONT_PORT:-8080}:80"
     environment:
@@ -111,9 +125,140 @@ services:
     networks:
       - restaurant-network
 
+  # ElasticSearch
+  elasticsearch:
+    image: elasticsearch:8.10.2
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-MiClaveElastic123}
+      - KIBANA_PASSWORD=${KIBANA_SYSTEM_PASSWORD:-MiClaveKibana123}
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+    networks:
+      - restaurant-network
+    healthcheck:
+      test: ["CMD-SHELL", 'curl -fs -u elastic:${ELASTIC_PASSWORD:-MiClaveElastic123} http://localhost:9200/_cluster/health | grep -q "\"status\"" || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+
+  #Kibana
+  kibana:
+    image: kibana:8.10.2
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${KIBANA_SYSTEM_PASSWORD:-MiClaveKibana123}
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY:-TuClaveSeguraDe32CaracteresAqui1}
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    ports:
+      - "5601:5601"
+    networks:
+      - restaurant-network
+
+  #APM Server
+  apm-server:
+    image: docker.elastic.co/apm/apm-server:8.10.2
+    container_name: apm-server
+    command: >-
+      apm-server -e
+        -E output.elasticsearch.hosts=["http://elasticsearch:9200"]
+        -E output.elasticsearch.username=elastic
+        -E output.elasticsearch.password=${ELASTIC_PASSWORD:-MiClaveElastic123}
+        -E apm-server.kibana.host=kibana:5601
+        -E apm-server.auth.secret_token=${APM_SERVER_SECRET_TOKEN:-TuTokenSecretoParaAPM}
+        -E monitoring.enabled=false
+        -E apm-server.kibana.enabled=true
+    ports:
+      - "8200:8200"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_started
+    networks:
+      - restaurant-network
+
+  #Filebeat
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.10.2
+    container_name: filebeat
+    user: root
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-MiClaveElastic123}
+    volumes:
+      # Archivo en tu directorio raíz
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml
+      # Socket de Docker para obtener metadatos de los contenedores
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Logs de contenedores
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      elasticsearch:
+        condition: service_started
+    networks:
+      - restaurant-network
+    command: sh -c "chmod go-w /usr/share/filebeat/filebeat.yml && filebeat -e"
+  
+  elastic-init:
+    image: curlimages/curl:8.10.1
+    container_name: elastic-init
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kibana:
+        condition: service_started
+    entrypoint: >
+      sh -c '
+        echo "Esperando a Elasticsearch...";
+        sleep 5;
+
+        echo "Actualizando password de kibana_system...";
+        curl -s -u elastic:${ELASTIC_PASSWORD:-MiClaveElastic123} \
+          -X POST http://elasticsearch:9200/_security/user/kibana_system/_password \
+          -H "Content-Type: application/json" \
+          -d "{\"password\":\"${KIBANA_SYSTEM_PASSWORD:-MiClaveKibana123}\"}";
+
+        echo "Password actualizado"
+        echo "Esperando a Kibana...";
+        until curl -s -u elastic:${ELASTIC_PASSWORD:-MiClaveElastic123} http://kibana:5601/api/status | grep -q "\"available\""; do
+          echo "Kibana aún no está listo...";
+          sleep 3;
+        done;
+
+
+        echo "Kibana operativo. Creando Data View filebeat-* ...";
+
+        RESP=$(curl -w "%{http_code}" -o /tmp/resp.txt \
+          -u elastic:${ELASTIC_PASSWORD:-MiClaveElastic123} \
+          -X POST http://kibana:5601/api/data_views/data_view \
+          -H "Content-Type: application/json" \
+          -H "kbn-xsrf: true" \
+          -d "{\"data_view\": {\"title\": \"filebeat-*\", \"name\": \"Filebeat Logs\", \"id\": \"filebeat-dataview\", \"timeFieldName\": \"@timestamp\"}}")
+
+        echo "✔️ Data View creado correctamente"
+      '
+    networks:
+      - restaurant-network
+
 volumes:
   mongo_data:
   rabbitmq_data:
+  esdata:
 
 networks:
   restaurant-network:

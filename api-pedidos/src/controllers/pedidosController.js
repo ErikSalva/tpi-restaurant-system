@@ -1,3 +1,5 @@
+const apm = require('../../apm');
+const { trazarPedido } = require('../utils/apmPedido');
 const pedidosService = require('../services/pedidosService');
 
 /**
@@ -11,6 +13,10 @@ exports.crearPedido = async (req, res) => {
     };
 
     const pedido = await pedidosService.crearPedido(pedidoData);
+    
+    if (apm) {
+      trazarPedido(pedido);
+    }
     res.status(201).json(pedido);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -46,6 +52,9 @@ exports.obtenerPedido = async (req, res) => {
       return res.status(403).json({ error: 'No tienes acceso a este pedido' });
     }
 
+    if (apm) {
+      trazarPedido(pedido);
+    }
     res.json(pedido);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -71,11 +80,15 @@ exports.confirmarPedido = async (req, res) => {
   try {
     const pedido = await pedidosService.confirmarPedido(req.params.id);
 
+    if (apm) {
+      trazarPedido(pedido);
+    }
     res.json({
       message: 'Pedido confirmado correctamente',
       pedido
     });
   } catch (error) {
+    console.log(error);
     res.status(400).json({ error: error.message });
   }
 };
@@ -86,6 +99,10 @@ exports.confirmarPedido = async (req, res) => {
 exports.marcarEnPreparacion = async (req, res) => {
   try {
     const pedido = await pedidosService.cambiarEstado(req.params.id, 'EN_PREPARACION');
+    
+    if (apm) {
+      trazarPedido(pedido);
+    }
     res.json({
       message: 'Pedido marcado como en preparación',
       pedido
@@ -101,6 +118,10 @@ exports.marcarEnPreparacion = async (req, res) => {
 exports.marcarListo = async (req, res) => {
   try {
     const pedido = await pedidosService.cambiarEstado(req.params.id, 'LISTO');
+    
+    if (apm) {
+      trazarPedido(pedido);
+    }
     res.json({
       message: 'Pedido marcado como listo',
       pedido
@@ -116,6 +137,10 @@ exports.marcarListo = async (req, res) => {
 exports.marcarEntregado = async (req, res) => {
   try {
     const pedido = await pedidosService.cambiarEstado(req.params.id, 'ENTREGADO');
+    
+    if (apm) {
+      trazarPedido(pedido);
+    }
     res.json({
       message: 'Pedido marcado como entregado',
       pedido
