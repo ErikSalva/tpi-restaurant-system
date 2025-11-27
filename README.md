@@ -96,6 +96,10 @@ APM_SECRET_TOKEN=TuTokenSecretoParaAPM
    - Kibana (Observabilidad): http://localhost:5601
    - Logs: `docker compose logs -f servicio-cocina tablero-cocina`
 
+4. **Inicialización de APM:**
+    Debido a la versión de Kibana, es necesario habilitar la integración APM manualmente una vez que el dashboard esté operativo.
+    * **Paso a seguir:** Abrir la URL: `http://localhost:5601/app/fleet/integrations/apm/add-integration`
+    * **Acción:** Hacer clic en el botón **"Save and continue"** para que Kibana reconozca y procese correctamente los datos del `apm-server`. **Sin este paso, no verás las métricas APM.**
 ---
 
 ## Flujo Completo del Sistema
