@@ -103,10 +103,7 @@ app.get('/health', (req, res) => {
 app.use('/api/pedidos', pedidosRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/productos', productosRoutes);
-// Rutas sin /api para Swagger (openapi.yaml)
-app.use('/pedidos', pedidosRoutes);
-app.use('/productos', productosRoutes);
-app.use('/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 
 // Iniciar servidor
 const startServer = async () => {
