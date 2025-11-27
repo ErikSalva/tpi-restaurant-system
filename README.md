@@ -58,7 +58,16 @@ MONGODB_URI=mongodb://mongo:27017/restaurant_db
 RABBITMQ_URL=amqp://guest:guest@RabbitMQ:5672
 JWT_SECRET=supersecreto
 NODE_ENV=development
+
 WEBSOCKET_PORT=3001
+TABLERO_PORT=3003
+FRONT_PORT=8080
+
+ELASTIC_PASSWORD=MiClaveElastic123
+KIBANA_SYSTEM_PASSWORD=MiClaveKibana123
+KIBANA_ENCRYPTION_KEY=TuClaveSeguraDe32CaracteresAqui1
+APM_SERVER_URL=http://apm-server:8200
+APM_SECRET_TOKEN=TuTokenSecretoParaAPM
 ```
 
 - Copiar `.env.example` a `.env` y personalizar los valores.
@@ -84,8 +93,13 @@ WEBSOCKET_PORT=3001
    - Front Mesero: http://localhost:8080
    - Tablero Cocina (Frontend): http://localhost:3003
    - Servicio Cocina (Backend): http://localhost:3001/health
+   - Kibana (Observabilidad): http://localhost:5601
    - Logs: `docker compose logs -f servicio-cocina tablero-cocina`
 
+4. **Inicialización de APM:**
+    Debido a la versión de Kibana, es necesario habilitar la integración APM manualmente una vez que el dashboard esté operativo.
+    * **Paso a seguir:** Abrir la URL: `http://localhost:5601/app/fleet/integrations/apm/add-integration`
+    * **Acción:** Hacer clic en el botón **"Save and continue"** para que Kibana reconozca y procese correctamente los datos del `apm-server`. **Sin este paso, no verás las métricas APM.**
 ---
 
 ## Flujo Completo del Sistema
@@ -113,6 +127,7 @@ WEBSOCKET_PORT=3001
 | `front-mesero`    | 8080   | Frontend web para meseros (nginx)                  |
 | `mongo`           | 27017  | Base de datos MongoDB                              |
 | `RabbitMQ`        | 5672   | Broker de mensajería (UI: 15672)                   |
+| `Kibana`        | 5601   | Observabilidad                   |
 
 ---
 
@@ -144,11 +159,71 @@ La colección completa de Postman incluye **24 endpoints** con tests automatizad
 - **Pedidos** (9 endpoints): CRUD + transacción + cambios de estado
 - **Usuarios** (6 endpoints): Gestión de usuarios
 - **Flujo Completo Demo** (8 pasos): Secuencia end-to-end
-
-Ver documentación completa: [`/postman/README.md`](./postman/README.md)
-
 ---
+## Cómo Observar el Sistema (Kibana)
 
+El sistema está instrumentado con el agente **Elastic APM** en los servicios Node.js y **Filebeat** para la recolección de logs estructurados (JSON) de todos los contenedores.
+
+### 1. Acceso al Dashboard de Kibana
+
+Para acceder al dashboard de visualización:
+* **URL del Dashboard:** `http://localhost:5601`
+* **Credenciales:** Usuario `elastic`, Contraseña `${ELASTIC_PASSWORD}` (`MiClaveElastic123` por defecto).
+* **Ubicación Principal:** Una vez dentro de Kibana, la información se encuentra en la aplicación **APM** (para métricas y trazas) y en la aplicación **Analytics** → **Discover** (para logs).
+
+### 2. Dónde Encontrar las Métricas Clave del TP
+
+Estas métricas son cruciales para evaluar el rendimiento y la salud del servicio y se encuentran en la aplicación **APM** seleccionando el servicio **`api-pedidos`**.
+
+| Requisito del TP | Pestaña en Kibana APM | Significado |
+| :--- | :--- | :--- |
+| **Latencia p95** | **Pestaña Latency** | **Valor:** Representa el tiempo de respuesta del 95% de las solicitudes. Es un indicador clave de la experiencia del usuario (SLO). |
+| **Throughput** | **Pestaña Throughput** | **Valor:** Mide la **tasa de solicitudes por minuto (RPM)** de la API REST. Indica el volumen de trabajo que el sistema está procesando. |
+| **Error Rate** | **Pestaña Errors** | **Valor:** Muestra el porcentaje de transacciones que resultaron en un error. Un alto *Error Rate* (típicamente > 1%) indica un problema crítico en producción. |
+
+### 3. Dónde Encontrar Logs y Trazas Correlacionables
+
+| Elemento | Ubicación en Kibana | Importancia |
+| :--- | :--- | :--- |
+| **Logs Estructurados (Filebeat)** | **Analytics** → **Discover** | Contiene los logs en formato JSON de todos los contenedores. Es la fuente primaria para la depuración de errores que no son capturados como excepciones. |
+| **Correlación de Trazas** | **APM** (dentro de cualquier transacción) | Permite seguir el flujo completo (`API Pedidos` → `RabbitMQ` → `Servicio Cocina`) a través del identificador único **`trace.id`**. Es vital para diagnosticar latencias en sistemas distribuidos. |
+---
+## Flujo de Negocio: Asincronía e Integración (WebSocket)
+
+El flujo clave es la **Transacción Multi-Paso** que activa la **Asincronía** (`RabbitMQ`) y la **Integración** en tiempo real (`WebSocket`).
+
+### 1. Disparar el Flujo Asincrónico
+
+El flujo asincrónico se dispara al ejecutar la **transacción multi-paso** que confirma un pedido. Esta acción debe ser realizada por un `Mesero` (con un JWT válido).
+
+* **Ruta de Disparo (Ejemplo):** `PUT /pedidos/{id}/confirmar`
+* **Acción interna de la API:** Una vez que la `API Pedidos` valida y persiste la transacción (`CONFIRMADO`), publica el evento `pedido.confirmado` en **RabbitMQ**.
+
+### 2. Dónde Ver el Efecto (Integración en Tiempo Real)
+
+El efecto visible de la asincronía es la aparición inmediata del pedido en el tablero de cocina, gracias a la integración WebSocket:
+
+| Dónde Ver el Efecto | Componente Involucrado | Instrucción |
+| :--- | :--- | :--- |
+| **Tablero Cocina (Visual)** | `tablero-cocina` (Frontend) | **Abre:** `http://localhost:3003`. El nuevo pedido aparecerá instantáneamente en el listado, demostrando la integración **WebSocket**. |
+| **Consumidor (Logs)** | `servicio-cocina` (Backend) | Verifica los logs de este contenedor (`docker compose logs -f servicio-cocina`) para ver que el `Consumidor de Eventos` recibió y procesó el mensaje de RabbitMQ. |
+| **Broker (Opcional)** | RabbitMQ UI (`http://localhost:15672`) | Puedes verificar la cola `cocina.pedidos` para confirmar que el mensaje fue puesto en cola por la API y luego consumido por el Servicio Cocina. |
+---
+## Limitaciones y Próximos Pasos
+
+El proyecto actual es una Prueba de Concepto (PoC) que implementa los requisitos básicos del TP. A continuación, se detallan las principales limitaciones de la arquitectura actual y las posibles mejoras:
+
+### 1. Limitaciones Identificadas
+
+* **Seguridad:** El flujo OAuth2/JWT es básico. Carece de implementación de **Refresh Tokens**, mecanismos de **revocación de tokens** y limitación de intentos de inicio de sesión (*rate limiting*).
+* **Transacciones y Datos:** El manejo de stock en la transacción multi-paso es **optimista**. No se implementó una lógica de compensación robusta o un patrón Saga ante fallos en la publicación del evento a RabbitMQ.
+* **Pruebas:** Solo se implementaron pruebas funcionales End-to-End con Postman. El código carece de **testing unitario** y de **pruebas de integración** entre servicios.
+
+### 2. Mejoras Futuras Sugeridas
+
+* **Observabilidad:** Implementar **OpenTelemetry (OTEL)** para métricas y trazas más ricas, exportando a Jaeger/Grafana (Opción C de bono del TP).
+* **Asincronía:** Agregar **Dead Letter Queues (DLQ)** y un mecanismo de reintento para los mensajes fallidos en RabbitMQ.
+---
 ## Versionado
 
 | Versión         | Tag    | Último commit |
