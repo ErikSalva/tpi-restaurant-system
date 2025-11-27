@@ -182,6 +182,26 @@ components:
           type: string
           format: date-time
           example: "2025-10-25T14:35:00Z"
+
+    CreateUsuarioInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: "nuevo@restaurante.com"
+        password:
+          type: string
+          format: password
+          example: "password123"
+        roles:
+          type: array
+          items:
+            type: string
+            enum: [USER, ADMIN]
+          example: ["USER"]
+      required: [email, password]
+
     ErrorResponse:
       type: object
       properties:
@@ -199,11 +219,13 @@ tags:
     description: "CRUD de la Entidad 1: Gestión del catálogo."
   - name: Pedidos
     description: "CRUD de la Entidad 2: Gestión de pedidos (incluye la transacción)."
+  - name: Usuarios
+    description: "CRUD de usuarios del sistema."
   - name: Sistema
     description: Endpoints de monitoreo (health check).
 
 paths:
-  /health:
+  /api/health:
     get:
       summary: Health check del servicio
       description: Verifica el estado del servicio y la conexión a MongoDB
@@ -227,7 +249,7 @@ paths:
                     type: string
                     format: date-time
 
-  /auth/token:
+  /api/auth/token:
     post:
       summary: Obtener un token JWT
       description: Envía credenciales (email/password) para obtener un token JWT.
@@ -256,7 +278,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /productos:
+  /api/productos:
     get:
       summary: Listar productos del catálogo
       tags: [Productos]
@@ -301,7 +323,7 @@ paths:
         "403":
           description: Prohibido (No es Admin)
 
-  /productos/{id}:
+  /api/productos/{id}:
     get:
       summary: Obtener un producto por ID
       tags: [Productos]
@@ -386,7 +408,7 @@ paths:
         "403":
           description: Prohibido (No es Admin)
 
-  /pedidos:
+  /api/pedidos:
     get:
       summary: Listar mis pedidos
       description: Devuelve la lista de pedidos del usuario autenticado (via JWT).
@@ -448,7 +470,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /pedidos/{id}/confirmar:
+  /api/pedidos/{id}/confirmar:
     post:
       summary: Confirmar un pedido (Transacción)
       description: |
@@ -492,7 +514,7 @@ paths:
         "404":
           description: Pedido no encontrado
 
-  /pedidos/{id}/en-preparacion:
+  /api/pedidos/{id}/en-preparacion:
     post:
       summary: Marcar pedido en preparación
       description: Cambia el estado del pedido de CONFIRMADO a EN_PREPARACION. La cocina indica que empezó a preparar el pedido.
@@ -516,7 +538,7 @@ paths:
         "404":
           description: Pedido no encontrado
 
-  /pedidos/{id}/listo:
+  /api/pedidos/{id}/listo:
     post:
       summary: Marcar pedido listo
       description: Cambia el estado del pedido de EN_PREPARACION a LISTO. La cocina indica que el pedido está listo para entregar.
@@ -540,7 +562,7 @@ paths:
         "404":
           description: Pedido no encontrado
 
-  /pedidos/{id}/entregado:
+  /api/pedidos/{id}/entregado:
     post:
       summary: Marcar pedido entregado
       description: Cambia el estado del pedido de LISTO a ENTREGADO. El mesero confirma que entregó el pedido al cliente.
@@ -564,7 +586,7 @@ paths:
         "404":
           description: Pedido no encontrado
 
-  /pedidos/{id}:
+  /api/pedidos/{id}:
     get:
       summary: Obtener un pedido por ID
       description: "Obtiene un pedido, verificando que pertenezca al usuario."
@@ -604,5 +626,168 @@ paths:
           description: Pedido eliminado exitosamente
         "404":
           description: Pedido no encontrado
+        "403":
+          description: Prohibido (No es Admin)
+
+  /api/usuarios:
+    post:
+      summary: Crear un nuevo usuario (Admin)
+      description: Crea un nuevo usuario en el sistema. Requiere rol ADMIN.
+      tags: [Usuarios]
+      security:
+        - bearerAuth: ["ADMIN"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUsuarioInput"
+            example:
+              email: "nuevo@restaurante.com"
+              password: "password123"
+              roles: ["USER"]
+      responses:
+        "201":
+          description: Usuario creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "400":
+          description: Error de validación
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Prohibido (No es Admin)
+
+    get:
+      summary: Listar todos los usuarios
+      description: Devuelve la lista de todos los usuarios registrados. Requiere autenticación.
+      tags: [Usuarios]
+      responses:
+        "200":
+          description: Lista de usuarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Usuario"
+        "401":
+          description: No autenticado
+
+  /api/usuarios/me:
+    get:
+      summary: Obtener mi perfil
+      description: Devuelve los datos del usuario autenticado (desde el token JWT).
+      tags: [Usuarios]
+      responses:
+        "200":
+          description: Perfil del usuario autenticado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "401":
+          description: No autenticado
+        "404":
+          description: Usuario no encontrado
+
+  /api/usuarios/{id}:
+    get:
+      summary: Obtener un usuario por ID
+      description: Obtiene los datos de un usuario específico. Requiere autenticación.
+      tags: [Usuarios]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "67123f..."
+      responses:
+        "200":
+          description: Usuario encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "404":
+          description: Usuario no encontrado
+        "401":
+          description: No autenticado
+
+    put:
+      summary: Actualizar un usuario (Admin)
+      description: Actualiza los datos de un usuario existente. Requiere rol ADMIN.
+      tags: [Usuarios]
+      security:
+        - bearerAuth: ["ADMIN"]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "67123f..."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                roles:
+                  type: array
+                  items:
+                    type: string
+            example:
+              email: "actualizado@restaurante.com"
+      responses:
+        "200":
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "404":
+          description: Usuario no encontrado
+        "403":
+          description: Prohibido (No es Admin)
+
+    delete:
+      summary: Eliminar un usuario (Admin)
+      description: Elimina un usuario del sistema. Requiere rol ADMIN.
+      tags: [Usuarios]
+      security:
+        - bearerAuth: ["ADMIN"]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "67123f..."
+      responses:
+        "200":
+          description: Usuario eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Usuario eliminado"
+        "404":
+          description: Usuario no encontrado
         "403":
           description: Prohibido (No es Admin)
