@@ -594,7 +594,7 @@
             const errorDiv = document.getElementById('loginError');
 
             try {
-                const response = await fetch(`${API_URL}/auth/token`, { // Asegúrate que la ruta coincida con tu backend (a veces es /auth/login o /auth/token)
+                const response = await fetch(`${API_URL}/api/auth/token`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
