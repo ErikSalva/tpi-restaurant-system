@@ -91,7 +91,7 @@ const connectRabbitMQ = async () => {
 app.use(express.static('public'));
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.json({
     status: 'healthy',
     database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
@@ -113,7 +113,7 @@ const startServer = async () => {
   
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-    console.log(`📊 Health check: http://localhost:${PORT}/health`);
+    console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
     console.log(`📚 Swagger UI: http://localhost:${PORT}/api-docs`);
   });
 };
