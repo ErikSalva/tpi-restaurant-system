@@ -205,12 +205,13 @@ tags:
 paths:
   /health:
     get:
-      summary: Verifica el estado del servicio
+      summary: Health check del servicio
+      description: Verifica el estado del servicio y la conexión a MongoDB
       tags: [Sistema]
       security: []
       responses:
         "200":
-          description: OK
+          description: Servicio funcionando correctamente
           content:
             application/json:
               schema:
@@ -219,6 +220,12 @@ paths:
                   status:
                     type: string
                     example: "healthy"
+                  database:
+                    type: string
+                    example: "connected"
+                  timestamp:
+                    type: string
+                    format: date-time
 
   /auth/token:
     post:
